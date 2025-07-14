@@ -323,6 +323,26 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
           ),
         ),
         const PopupMenuDivider(),
+        PopupMenuItem<String>(
+          value: 'refresh_link',
+          enabled: download.status == DownloadStatus.failed,
+          child: Row(
+            children: [
+              Icon(
+                Icons.refresh,
+                size: 16,
+                color: download.status == DownloadStatus.failed ? null : Colors.grey,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Refresh download link',
+                style: TextStyle(
+                  color: download.status == DownloadStatus.failed ? null : Colors.grey,
+                ),
+              ),
+            ],
+          ),
+        ),
         const PopupMenuItem<String>(
           value: 'remove_list',
           child: Row(
@@ -402,9 +422,17 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
   }
 
   void _handleContextMenuAction(String action, DownloadItem download) {
-    // TODO: Implement context menu actions
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$action action for ${download.filename}')),
-    );
+    switch (action) {
+      case 'refresh_link':
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Refreshing download link for ${download.filename}')),
+        );
+        // TODO: Implement refresh link functionality
+        break;
+      default:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$action action for ${download.filename}')),
+        );
+    }
   }
 }

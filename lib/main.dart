@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'models/download_item.dart';
 import 'widgets/download_list_widget.dart';
+import 'widgets/add_download_dialog.dart';
 
 void main() {
   runApp(const MyApp());
@@ -144,11 +145,15 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
                 _buildToolbarButton(
                   Icons.add,
                   'Add New Download',
-                  () {
-                    // TODO: Implement add new download dialog
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Add New Download functionality coming soon!')),
+                  () async {
+                    final result = await showDialog<Map<String, String>>(
+                      context: context,
+                      builder: (context) => const AddDownloadDialog(),
                     );
+                    
+                    if (result != null) {
+                      _addNewDownload(result['url']!, result['filename']!);
+                    }
                   },
                 ),
                 const SizedBox(width: 8),
@@ -328,6 +333,30 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
           foregroundColor: Colors.grey[700],
           padding: const EdgeInsets.all(8),
         ),
+      ),
+    );
+  }
+
+  void _addNewDownload(String url, String filename) {
+    final newDownload = DownloadItem(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      filename: filename,
+      size: '0 MB',
+      url: url,
+      speed: '0 MB/s',
+      dateAdded: DateTime.now().toString().substring(0, 16),
+      status: DownloadStatus.downloading,
+      progress: 0.0,
+    );
+    
+    setState(() {
+      _allDownloads.add(newDownload);
+    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Added download: $filename'),
+        backgroundColor: Colors.green,
       ),
     );
   }
