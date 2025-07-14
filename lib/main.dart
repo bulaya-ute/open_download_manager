@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'models/download_item.dart';
+import 'widgets/download_list_widget.dart';
 
 void main() {
   runApp(const MyApp());
@@ -7,116 +9,259 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Open Download Manager',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const DownloadManagerHomePage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class DownloadManagerHomePage extends StatefulWidget {
+  const DownloadManagerHomePage({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<DownloadManagerHomePage> createState() => _DownloadManagerHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
+  String _currentTab = 'all';
+  final TextEditingController _searchController = TextEditingController();
+  
+  // Sample data
+  final List<DownloadItem> _allDownloads = [
+    DownloadItem(
+      id: '1',
+      filename: 'Project_Documentation.pdf',
+      size: '2.4 MB',
+      url: 'https://example.com/docs/project.pdf',
+      speed: '1.2 MB/s',
+      dateAdded: '2024-02-10 14:30',
+      status: DownloadStatus.completed,
+    ),
+    DownloadItem(
+      id: '2',
+      filename: 'Software_Update.zip',
+      size: '156 MB',
+      url: 'https://example.com/updates/v2.0.zip',
+      speed: '3.8 MB/s',
+      dateAdded: '2024-02-10 15:45',
+      status: DownloadStatus.downloading,
+    ),
+    DownloadItem(
+      id: '3',
+      filename: 'Video_Tutorial.mp4',
+      size: '850 MB',
+      url: 'https://example.com/tutorials/vide...',
+      speed: '0 MB/s',
+      dateAdded: '2024-02-10 16:20',
+      status: DownloadStatus.failed,
+    ),
+    DownloadItem(
+      id: '4',
+      filename: 'Design_Assets.zip',
+      size: '45 MB',
+      url: 'https://example.com/assets/design.zip',
+      speed: '2.1 MB/s',
+      dateAdded: '2024-02-10 16:30',
+      status: DownloadStatus.downloading,
+    ),
+  ];
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+  List<DownloadItem> get _filteredDownloads {
+    List<DownloadItem> filtered = _allDownloads;
+    
+    // Filter by tab
+    switch (_currentTab) {
+      case 'completed':
+        filtered = filtered.where((item) => item.status == DownloadStatus.completed).toList();
+        break;
+      case 'incomplete':
+        filtered = filtered.where((item) => 
+          item.status == DownloadStatus.downloading || 
+          item.status == DownloadStatus.paused
+        ).toList();
+        break;
+      case 'failed':
+        filtered = filtered.where((item) => item.status == DownloadStatus.failed).toList();
+        break;
+      default: // 'all'
+        break;
+    }
+    
+    // Filter by search query
+    if (_searchController.text.isNotEmpty) {
+      final query = _searchController.text.toLowerCase();
+      filtered = filtered.where((item) => 
+        item.filename.toLowerCase().contains(query) ||
+        item.url.toLowerCase().contains(query)
+      ).toList();
+    }
+    
+    return filtered;
+  }
+
+  int _getTabCount(String tab) {
+    switch (tab) {
+      case 'all':
+        return _allDownloads.length;
+      case 'completed':
+        return _allDownloads.where((item) => item.status == DownloadStatus.completed).length;
+      case 'incomplete':
+        return _allDownloads.where((item) => 
+          item.status == DownloadStatus.downloading || 
+          item.status == DownloadStatus.paused
+        ).length;
+      case 'failed':
+        return _allDownloads.where((item) => item.status == DownloadStatus.failed).length;
+      default:
+        return 0;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+      backgroundColor: Colors.white,
+      body: Column(
+        children: [
+          // Top search bar and add button
+          Container(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Search field
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search downloads...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Colors.blue),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[50],
+                    ),
+                    onChanged: (value) {
+                      setState(() {});
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Add New Download button
+                ElevatedButton.icon(
+                  onPressed: () {
+                    // TODO: Implement add new download dialog
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Add New Download functionality coming soon!')),
+                    );
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add New Download'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
+          
+          // Tab navigation
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                _buildTab('all', 'All Downloads', _getTabCount('all')),
+                _buildTab('completed', 'Completed', _getTabCount('completed')),
+                _buildTab('incomplete', 'Incomplete', _getTabCount('incomplete')),
+                _buildTab('failed', 'Failed', _getTabCount('failed')),
+              ],
+            ),
+          ),
+          
+          // Downloads list
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey[300]!),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: DownloadListWidget(
+                downloads: _filteredDownloads,
+                currentTab: _currentTab,
+                onToggleSelection: (download) {
+                  setState(() {
+                    download.isSelected = !download.isSelected;
+                  });
+                },
+                onSelectAll: () {
+                  setState(() {
+                    for (var download in _filteredDownloads) {
+                      download.isSelected = true;
+                    }
+                  });
+                },
+                onDeselectAll: () {
+                  setState(() {
+                    for (var download in _filteredDownloads) {
+                      download.isSelected = false;
+                    }
+                  });
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTab(String tabKey, String title, int count) {
+    final isActive = _currentTab == tabKey;
+    
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _currentTab = tabKey;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: const EdgeInsets.only(right: 8),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: isActive ? Colors.blue : Colors.transparent,
+              width: 2,
+            ),
+          ),
+        ),
+        child: Text(
+          '$title($count)',
+          style: TextStyle(
+            color: isActive ? Colors.blue : Colors.grey[600],
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
