@@ -6,6 +6,8 @@ class DownloadItem {
   final String speed;
   final String dateAdded;
   final DownloadStatus status;
+  final double progress; // Progress percentage (0.0 to 1.0)
+  final String? errorMessage; // Error message for failed downloads
   bool isSelected;
 
   DownloadItem({
@@ -16,6 +18,8 @@ class DownloadItem {
     required this.speed,
     required this.dateAdded,
     required this.status,
+    this.progress = 0.0,
+    this.errorMessage,
     this.isSelected = false,
   });
 }

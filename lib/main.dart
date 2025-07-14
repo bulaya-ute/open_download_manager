@@ -43,6 +43,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
       speed: '1.2 MB/s',
       dateAdded: '2024-02-10 14:30',
       status: DownloadStatus.completed,
+      progress: 1.0,
     ),
     DownloadItem(
       id: '2',
@@ -52,6 +53,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
       speed: '3.8 MB/s',
       dateAdded: '2024-02-10 15:45',
       status: DownloadStatus.downloading,
+      progress: 0.76,
     ),
     DownloadItem(
       id: '3',
@@ -61,6 +63,8 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
       speed: '0 MB/s',
       dateAdded: '2024-02-10 16:20',
       status: DownloadStatus.failed,
+      progress: 0.32,
+      errorMessage: 'Link expired',
     ),
     DownloadItem(
       id: '4',
@@ -69,7 +73,8 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
       url: 'https://example.com/assets/design.zip',
       speed: '2.1 MB/s',
       dateAdded: '2024-02-10 16:30',
-      status: DownloadStatus.downloading,
+      status: DownloadStatus.paused,
+      progress: 0.45,
     ),
   ];
 
@@ -130,13 +135,76 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
       backgroundColor: Colors.white,
       body: Column(
         children: [
-          // Top search bar and add button
+          // Top toolbar and search bar
           Container(
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
+                // Toolbar buttons
+                _buildToolbarButton(
+                  Icons.add,
+                  'Add New Download',
+                  () {
+                    // TODO: Implement add new download dialog
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Add New Download functionality coming soon!')),
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
+                _buildToolbarButton(
+                  Icons.play_arrow,
+                  'Resume selected downloads',
+                  () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Resume selected downloads')),
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
+                _buildToolbarButton(
+                  Icons.pause,
+                  'Pause selected downloads',
+                  () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Pause selected downloads')),
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
+                _buildToolbarButton(
+                  Icons.queue,
+                  'Queue selected downloads',
+                  () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Queue selected downloads')),
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
+                _buildToolbarButton(
+                  Icons.delete,
+                  'Delete selected downloads',
+                  () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Delete selected downloads')),
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
+                _buildToolbarButton(
+                  Icons.settings,
+                  'Settings',
+                  () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Settings')),
+                    );
+                  },
+                ),
+                const Spacer(),
                 // Search field
-                Expanded(
+                SizedBox(
+                  width: 300,
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
@@ -156,27 +224,11 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
                       ),
                       filled: true,
                       fillColor: Colors.grey[50],
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
                     onChanged: (value) {
                       setState(() {});
                     },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                // Add New Download button
-                ElevatedButton.icon(
-                  onPressed: () {
-                    // TODO: Implement add new download dialog
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Add New Download functionality coming soon!')),
-                    );
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add New Download'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   ),
                 ),
               ],
@@ -260,6 +312,21 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
             color: isActive ? Colors.blue : Colors.grey[600],
             fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToolbarButton(IconData icon, String tooltip, VoidCallback onPressed) {
+    return Tooltip(
+      message: tooltip,
+      child: IconButton(
+        icon: Icon(icon),
+        onPressed: onPressed,
+        style: IconButton.styleFrom(
+          backgroundColor: Colors.grey[100],
+          foregroundColor: Colors.grey[700],
+          padding: const EdgeInsets.all(8),
         ),
       ),
     );
