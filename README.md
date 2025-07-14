@@ -20,7 +20,7 @@ Open Download Manager is a free and open-source download manager built with Flut
 
 2. **Clone the Repository**:
    ```bash
-   git clone https://github.com/[YourUsername]/open-download-manager.git
+   git clone https://github.com/bulaya-ute/open-download-manager.git
    cd open-download-manager
    ```
 
@@ -51,8 +51,6 @@ We welcome contributions! To contribute:
 3. Commit your changes (`git commit -m 'Add YourFeature'`).
 4. Push to the branch (`git push origin feature/YourFeature`).
 5. Open a Pull Request.
-
-Please follow the [Code of Conduct](CODE_OF_CONDUCT.md) and ensure your code adheres to the project's style guidelines.
 
 ## License
 
