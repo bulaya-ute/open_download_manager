@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'models/download_item.dart';
 import 'widgets/download_list_widget.dart';
 import 'widgets/add_download_dialog.dart';
+import 'widgets/settings_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -201,8 +202,9 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
                   Icons.settings,
                   'Settings',
                   () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Settings')),
+                    showDialog(
+                      context: context,
+                      builder: (context) => const SettingsScreen(),
                     );
                   },
                 ),
