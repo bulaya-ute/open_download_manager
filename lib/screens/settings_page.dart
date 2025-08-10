@@ -1,172 +1,216 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../models/app_settings.dart';
+import '../services/data_service.dart';
 
-class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+class SettingsPage extends StatefulWidget {
+  const SettingsPage({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  State<SettingsPage> createState() => _SettingsPageState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsPageState extends State<SettingsPage> {
   String _selectedSection = 'Downloads';
-
-  // Settings values
-  String _defaultDownloadLocation = 'Downloads';
-  int _maxSimultaneousDownloads = 4;
-  bool _groupByFileType = false;
-  bool _downloadSpeedLimit = false;
-  double _speedLimitValue = 50;
-  String _speedLimitUnit = 'KB/s';
+  late AppSettings _settings;
+  bool _isLoading = true;
 
   // File type groupings
-  final List<Map<String, String>> _fileTypeGroups = [
-    {'types': 'png, jpeg, jpg', 'folder': 'Images'},
-    {'types': 'mp4, webm,', 'folder': 'Videos'},
-    {'types': 'Documents', 'folder': 'Documents'},
-  ];
+  List<Map<String, String>> _fileTypeGroups = [];
 
   final TextEditingController _searchController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    try {
+      _settings = await DataService.loadSettings();
+      _fileTypeGroups = _settings.fileTypeGroups.entries
+          .map((e) => {'types': e.key, 'folder': e.value})
+          .toList();
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _settings = AppSettings();
+      });
+    }
+  }
+
+  Future<void> _saveSettings() async {
+    try {
+      // Update file type groups
+      final fileTypeGroupsMap = <String, String>{};
+      for (final group in _fileTypeGroups) {
+        if (group['types']?.isNotEmpty == true &&
+            group['folder']?.isNotEmpty == true) {
+          fileTypeGroupsMap[group['types']!] = group['folder']!;
+        }
+      }
+
+      final updatedSettings = _settings.copyWith(
+        fileTypeGroups: fileTypeGroupsMap,
+      );
+
+      await DataService.saveSettings(updatedSettings);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Settings saved successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving settings: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: SizedBox(
-        width: 900,
-        height: 700,
-        child: Row(
-          children: [
-            // Left sidebar
-            Container(
-              width: 250,
-              color: Colors.grey[50],
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Settings title
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    child: const Text(
-                      'Settings',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Row(
+        children: [
+          // Left sidebar
+          Container(
+            width: 250,
+            color: Colors.grey[50],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Back button and title
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back),
+                        onPressed: () => Navigator.of(context).pop(),
                       ),
-                    ),
-                  ),
-                  // Settings sections
-                  Expanded(
-                    child: ListView(
-                      children: [
-                        _buildSidebarItem(Icons.settings, 'General'),
-                        _buildSidebarItem(Icons.download, 'Downloads'),
-                        _buildSidebarItem(Icons.palette, 'Appearance'),
-                        _buildSidebarItem(Icons.security, 'Privacy & Security'),
-                        _buildSidebarItem(Icons.tune, 'Advanced'),
-                        _buildSidebarItem(Icons.info, 'About'),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Main content area
-            Expanded(
-              child: Column(
-                children: [
-                  // Header with search
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(color: Colors.grey[200]!),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Text(
-                          _selectedSection,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w600,
-                          ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Settings',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
                         ),
-                        const Spacer(),
-                        SizedBox(
-                          width: 250,
-                          child: TextField(
-                            controller: _searchController,
-                            decoration: InputDecoration(
-                              hintText: 'Search settings',
-                              prefixIcon: const Icon(Icons.search, size: 20),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(
-                                  color: Colors.grey[300]!,
-                                ),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Settings sections
+                Expanded(
+                  child: ListView(
+                    children: [
+                      _buildSidebarItem(Icons.settings, 'General'),
+                      _buildSidebarItem(Icons.download, 'Downloads'),
+                      _buildSidebarItem(Icons.security, 'Privacy & Security'),
+                      _buildSidebarItem(Icons.tune, 'Advanced'),
+                      _buildSidebarItem(Icons.info, 'About'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Main content area
+          Expanded(
+            child: Column(
+              children: [
+                // Header with search
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey[200]!),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        _selectedSection,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                      SizedBox(
+                        width: 250,
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Search settings',
+                            prefixIcon: const Icon(Icons.search, size: 20),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        IconButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.close),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  // Content
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(20),
-                      child: _buildContent(),
-                    ),
-                  ),
-                  // Footer buttons
-                  Container(
+                ),
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
                     padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      border: Border(top: BorderSide(color: Colors.grey[200]!)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Cancel'),
-                        ),
-                        const SizedBox(width: 12),
-                        ElevatedButton(
-                          onPressed: () {
-                            // Save settings
-                            Navigator.of(context).pop();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Settings saved successfully'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text('Save Changes'),
-                        ),
-                      ],
-                    ),
+                    child: _buildContent(),
                   ),
-                ],
-              ),
+                ),
+                // Footer buttons
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    border: Border(top: BorderSide(color: Colors.grey[200]!)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Cancel'),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: _saveSettings,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Save Changes'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -229,11 +273,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               const Icon(Icons.folder, color: Colors.grey),
               const SizedBox(width: 8),
-              Text(_defaultDownloadLocation),
+              Text(_settings.defaultDownloadLocation),
               const Spacer(),
               TextButton(
                 onPressed: () {
-                  // TODO: Open folder picker
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Folder picker coming soon')),
                   );
@@ -243,7 +286,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               TextButton(
                 onPressed: () {
                   setState(() {
-                    _defaultDownloadLocation = 'Downloads';
+                    _settings = _settings.copyWith(
+                      defaultDownloadLocation: 'Downloads',
+                    );
                   });
                 },
                 child: const Text('Reset to default'),
@@ -263,7 +308,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               SizedBox(
                 width: 100,
                 child: TextFormField(
-                  initialValue: _maxSimultaneousDownloads.toString(),
+                  initialValue: _settings.maxSimultaneousDownloads.toString(),
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   decoration: const InputDecoration(
@@ -277,7 +322,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     final parsed = int.tryParse(value);
                     if (parsed != null && parsed > 0) {
                       setState(() {
-                        _maxSimultaneousDownloads = parsed;
+                        _settings = _settings.copyWith(
+                          maxSimultaneousDownloads: parsed,
+                        );
                       });
                     }
                   },
@@ -295,10 +342,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           '',
           CheckboxListTile(
             title: const Text('Group incoming downloads by file type'),
-            value: _groupByFileType,
+            value: _settings.groupByFileType,
             onChanged: (value) {
               setState(() {
-                _groupByFileType = value ?? false;
+                _settings = _settings.copyWith(groupByFileType: value ?? false);
               });
             },
             controlAffinity: ListTileControlAffinity.leading,
@@ -306,30 +353,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
 
-        // if (_groupByFileType) ...[
-        Row(
-          children: [
-            SizedBox(width: 16),
-            Column(
-              children: [
-                const SizedBox(height: 16),
-                _buildFileTypeGroupsTable(),
-                const SizedBox(height: 16),
-                TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _fileTypeGroups.add({'types': '', 'folder': ''});
-                    });
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add File Type'),
-                ),
-              ],
-            ),
-          ],
-        ),
+        if (_settings.groupByFileType) ...[
+          const SizedBox(height: 16),
+          _buildFileTypeGroupsTable(),
+          const SizedBox(height: 16),
+          TextButton.icon(
+            onPressed: () {
+              setState(() {
+                _fileTypeGroups.add({'types': '', 'folder': ''});
+              });
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Add File Type'),
+          ),
+        ],
 
-        // ],
         const SizedBox(height: 32),
 
         // Download speed limit
@@ -338,10 +376,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           '',
           CheckboxListTile(
             title: const Text('Download speed limit'),
-            value: _downloadSpeedLimit,
+            value: _settings.downloadSpeedLimit,
             onChanged: (value) {
               setState(() {
-                _downloadSpeedLimit = value ?? false;
+                _settings = _settings.copyWith(
+                  downloadSpeedLimit: value ?? false,
+                );
               });
             },
             controlAffinity: ListTileControlAffinity.leading,
@@ -349,19 +389,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
 
-        if (_downloadSpeedLimit) ...[
+        if (_settings.downloadSpeedLimit) ...[
           const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
                 child: Slider(
-                  value: _speedLimitValue,
+                  value: _settings.speedLimitValue,
                   min: 10,
                   max: 1000,
                   divisions: 99,
                   onChanged: (value) {
                     setState(() {
-                      _speedLimitValue = value;
+                      _settings = _settings.copyWith(speedLimitValue: value);
                     });
                   },
                 ),
@@ -370,7 +410,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               SizedBox(
                 width: 80,
                 child: TextFormField(
-                  initialValue: _speedLimitValue.toInt().toString(),
+                  initialValue: _settings.speedLimitValue.toInt().toString(),
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
@@ -383,7 +423,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     final parsed = double.tryParse(value);
                     if (parsed != null && parsed >= 10 && parsed <= 1000) {
                       setState(() {
-                        _speedLimitValue = parsed;
+                        _settings = _settings.copyWith(speedLimitValue: parsed);
                       });
                     }
                   },
@@ -391,13 +431,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(width: 8),
               DropdownButton<String>(
-                value: _speedLimitUnit,
+                value: _settings.speedLimitUnit,
                 items: ['KB/s', 'MB/s'].map((unit) {
                   return DropdownMenuItem(value: unit, child: Text(unit));
                 }).toList(),
                 onChanged: (value) {
                   setState(() {
-                    _speedLimitUnit = value!;
+                    _settings = _settings.copyWith(speedLimitUnit: value!);
                   });
                 },
               ),
@@ -462,11 +502,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   Expanded(
                     flex: 2,
-                    child: Text(_fileTypeGroups[index]['types']!),
+                    child: TextFormField(
+                      initialValue: _fileTypeGroups[index]['types'],
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                      ),
+                      onChanged: (value) {
+                        _fileTypeGroups[index]['types'] = value;
+                      },
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Expanded(
                     flex: 2,
-                    child: Text(_fileTypeGroups[index]['folder']!),
+                    child: TextFormField(
+                      initialValue: _fileTypeGroups[index]['folder'],
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                      ),
+                      onChanged: (value) {
+                        _fileTypeGroups[index]['folder'] = value;
+                      },
+                    ),
                   ),
                   IconButton(
                     onPressed: () {
@@ -485,6 +550,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  // Other sections remain the same as before...
   Widget _buildGeneralContent() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -493,7 +559,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           'Language',
           'Choose your preferred language',
           DropdownButtonFormField<String>(
-            value: 'English',
+            value: _settings.language,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -501,7 +567,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             items: ['English', 'Spanish', 'French', 'German'].map((lang) {
               return DropdownMenuItem(value: lang, child: Text(lang));
             }).toList(),
-            onChanged: (value) {},
+            onChanged: (value) {
+              setState(() {
+                _settings = _settings.copyWith(language: value!);
+              });
+            },
           ),
         ),
         const SizedBox(height: 24),
@@ -509,7 +579,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           'Theme',
           'Choose your preferred appearance',
           DropdownButtonFormField<String>(
-            value: 'System',
+            value: _settings.theme,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -517,15 +587,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
             items: ['System', 'Light', 'Dark'].map((theme) {
               return DropdownMenuItem(value: theme, child: Text(theme));
             }).toList(),
-            onChanged: (value) {},
+            onChanged: (value) {
+              setState(() {
+                _settings = _settings.copyWith(theme: value!);
+              });
+            },
           ),
         ),
         const SizedBox(height: 24),
         CheckboxListTile(
           title: const Text('Start with system'),
           subtitle: const Text('Launch download manager when system starts'),
-          value: true,
-          onChanged: (value) {},
+          value: _settings.startWithSystem,
+          onChanged: (value) {
+            setState(() {
+              _settings = _settings.copyWith(startWithSystem: value ?? false);
+            });
+          },
           contentPadding: EdgeInsets.zero,
         ),
         CheckboxListTile(
@@ -533,16 +611,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           subtitle: const Text(
             'Keep running in background when window is closed',
           ),
-          value: false,
-          onChanged: (value) {},
+          value: _settings.minimizeToTray,
+          onChanged: (value) {
+            setState(() {
+              _settings = _settings.copyWith(minimizeToTray: value ?? false);
+            });
+          },
           contentPadding: EdgeInsets.zero,
         ),
       ],
     );
-  }
-
-  Widget _buildAppearanceContent() {
-    // implement this
   }
 
   Widget _buildPrivacyContent() {
@@ -658,7 +736,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
                 ),
                 Text('Version 1.0.0'),
-                Text('Build 2024.07.14'),
+                Text('Build 2024.08.10'),
               ],
             ),
           ],

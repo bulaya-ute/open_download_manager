@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'models/download_item.dart';
-import 'widgets/download_list_widget.dart';
+import 'models/app_settings.dart';
 import 'widgets/add_download_dialog.dart';
-import 'widgets/settings_screen.dart';
+import 'widgets/download_list_widget.dart';
+import 'screens/settings_page.dart';
+import 'services/data_service.dart';
+import 'services/download_service.dart';
 
 void main() {
   runApp(const MyApp());
@@ -28,88 +31,105 @@ class DownloadManagerHomePage extends StatefulWidget {
   const DownloadManagerHomePage({super.key});
 
   @override
-  State<DownloadManagerHomePage> createState() => _DownloadManagerHomePageState();
+  State<DownloadManagerHomePage> createState() =>
+      _DownloadManagerHomePageState();
 }
 
 class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
   String _currentTab = 'all';
   final TextEditingController _searchController = TextEditingController();
-  
-  // Sample data
-  final List<DownloadItem> _allDownloads = [
-    DownloadItem(
-      id: '1',
-      filename: 'Project_Documentation.pdf',
-      size: '2.4 MB',
-      url: 'https://example.com/docs/project.pdf',
-      speed: '1.2 MB/s',
-      dateAdded: '2024-02-10 14:30',
-      status: DownloadStatus.completed,
-      progress: 1.0,
-    ),
-    DownloadItem(
-      id: '2',
-      filename: 'Software_Update.zip',
-      size: '156 MB',
-      url: 'https://example.com/updates/v2.0.zip',
-      speed: '3.8 MB/s',
-      dateAdded: '2024-02-10 15:45',
-      status: DownloadStatus.downloading,
-      progress: 0.76,
-    ),
-    DownloadItem(
-      id: '3',
-      filename: 'Video_Tutorial.mp4',
-      size: '850 MB',
-      url: 'https://example.com/tutorials/vide...',
-      speed: '0 MB/s',
-      dateAdded: '2024-02-10 16:20',
-      status: DownloadStatus.failed,
-      progress: 0.32,
-      errorMessage: 'Link expired',
-    ),
-    DownloadItem(
-      id: '4',
-      filename: 'Design_Assets.zip',
-      size: '45 MB',
-      url: 'https://example.com/assets/design.zip',
-      speed: '2.1 MB/s',
-      dateAdded: '2024-02-10 16:30',
-      status: DownloadStatus.paused,
-      progress: 0.45,
-    ),
-  ];
+  List<DownloadItem> _allDownloads = [];
+  AppSettings _settings = AppSettings();
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeServices();
+  }
+
+  Future<void> _initializeServices() async {
+    // Initialize data service first
+    await DataService.initialize();
+    // Initialize download service
+    await DownloadService.initialize();
+    // Load data
+    await _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      // Load downloads and settings from file
+      final downloads = await DataService.loadDownloads();
+      final settings = await DataService.loadSettings();
+
+      setState(() {
+        _allDownloads = downloads;
+        _settings = settings;
+        _isLoading = false;
+      });
+    } catch (e) {
+      // If loading fails, use empty data
+      setState(() {
+        _allDownloads = [];
+        _settings = AppSettings();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _saveDownloads() async {
+    try {
+      await DataService.saveDownloads(_allDownloads);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error saving downloads: $e')));
+      }
+    }
+  }
 
   List<DownloadItem> get _filteredDownloads {
     List<DownloadItem> filtered = _allDownloads;
-    
+
     // Filter by tab
     switch (_currentTab) {
       case 'completed':
-        filtered = filtered.where((item) => item.status == DownloadStatus.completed).toList();
+        filtered = filtered
+            .where((item) => item.status == DownloadStatus.completed)
+            .toList();
         break;
       case 'incomplete':
-        filtered = filtered.where((item) => 
-          item.status == DownloadStatus.downloading || 
-          item.status == DownloadStatus.paused
-        ).toList();
+        filtered = filtered
+            .where(
+              (item) =>
+                  item.status == DownloadStatus.downloading ||
+                  item.status == DownloadStatus.paused,
+            )
+            .toList();
         break;
       case 'failed':
-        filtered = filtered.where((item) => item.status == DownloadStatus.failed).toList();
+        filtered = filtered
+            .where((item) => item.status == DownloadStatus.failed)
+            .toList();
         break;
       default: // 'all'
         break;
     }
-    
+
     // Filter by search query
     if (_searchController.text.isNotEmpty) {
       final query = _searchController.text.toLowerCase();
-      filtered = filtered.where((item) => 
-        item.filename.toLowerCase().contains(query) ||
-        item.url.toLowerCase().contains(query)
-      ).toList();
+      filtered = filtered
+          .where(
+            (item) =>
+                item.filename.toLowerCase().contains(query) ||
+                item.url.toLowerCase().contains(query),
+          )
+          .toList();
     }
-    
+
     return filtered;
   }
 
@@ -118,14 +138,21 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
       case 'all':
         return _allDownloads.length;
       case 'completed':
-        return _allDownloads.where((item) => item.status == DownloadStatus.completed).length;
+        return _allDownloads
+            .where((item) => item.status == DownloadStatus.completed)
+            .length;
       case 'incomplete':
-        return _allDownloads.where((item) => 
-          item.status == DownloadStatus.downloading || 
-          item.status == DownloadStatus.paused
-        ).length;
+        return _allDownloads
+            .where(
+              (item) =>
+                  item.status == DownloadStatus.downloading ||
+                  item.status == DownloadStatus.paused,
+            )
+            .length;
       case 'failed':
-        return _allDownloads.where((item) => item.status == DownloadStatus.failed).length;
+        return _allDownloads
+            .where((item) => item.status == DownloadStatus.failed)
+            .length;
       default:
         return 0;
     }
@@ -133,6 +160,13 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Column(
@@ -143,28 +177,22 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
             child: Row(
               children: [
                 // Toolbar buttons
-                _buildToolbarButton(
-                  Icons.add,
-                  'Add New Download',
-                  () async {
-                    final result = await showDialog<Map<String, String>>(
-                      context: context,
-                      builder: (context) => const AddDownloadDialog(),
-                    );
-                    
-                    if (result != null) {
-                      _addNewDownload(result['url']!, result['filename']!);
-                    }
-                  },
-                ),
+                _buildToolbarButton(Icons.add, 'Add New Download', () async {
+                  final result = await showDialog<Map<String, String>>(
+                    context: context,
+                    builder: (context) => const AddDownloadDialog(),
+                  );
+
+                  if (result != null) {
+                    _addNewDownload(result['url']!, result['filename']!);
+                  }
+                }),
                 const SizedBox(width: 8),
                 _buildToolbarButton(
                   Icons.play_arrow,
                   'Resume selected downloads',
                   () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Resume selected downloads')),
-                    );
+                    _resumeSelectedDownloads();
                   },
                 ),
                 const SizedBox(width: 8),
@@ -172,9 +200,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
                   Icons.pause,
                   'Pause selected downloads',
                   () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Pause selected downloads')),
-                    );
+                    _pauseSelectedDownloads();
                   },
                 ),
                 const SizedBox(width: 8),
@@ -193,21 +219,20 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
                   'Delete selected downloads',
                   () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Delete selected downloads')),
+                      const SnackBar(
+                        content: Text('Delete selected downloads'),
+                      ),
                     );
                   },
                 ),
                 const SizedBox(width: 8),
-                _buildToolbarButton(
-                  Icons.settings,
-                  'Settings',
-                  () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => const SettingsScreen(),
-                    );
-                  },
-                ),
+                _buildToolbarButton(Icons.settings, 'Settings', () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const SettingsPage(),
+                    ),
+                  );
+                }),
                 const Spacer(),
                 // Search field
                 SizedBox(
@@ -231,7 +256,10 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
                       ),
                       filled: true,
                       fillColor: Colors.grey[50],
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                     ),
                     onChanged: (value) {
                       setState(() {});
@@ -241,7 +269,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
               ],
             ),
           ),
-          
+
           // Tab navigation
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -249,12 +277,16 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
               children: [
                 _buildTab('all', 'All Downloads', _getTabCount('all')),
                 _buildTab('completed', 'Completed', _getTabCount('completed')),
-                _buildTab('incomplete', 'Incomplete', _getTabCount('incomplete')),
+                _buildTab(
+                  'incomplete',
+                  'Incomplete',
+                  _getTabCount('incomplete'),
+                ),
                 _buildTab('failed', 'Failed', _getTabCount('failed')),
               ],
             ),
           ),
-          
+
           // Downloads list
           Expanded(
             child: Container(
@@ -295,7 +327,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
 
   Widget _buildTab(String tabKey, String title, int count) {
     final isActive = _currentTab == tabKey;
-    
+
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -324,7 +356,11 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
     );
   }
 
-  Widget _buildToolbarButton(IconData icon, String tooltip, VoidCallback onPressed) {
+  Widget _buildToolbarButton(
+    IconData icon,
+    String tooltip,
+    VoidCallback onPressed,
+  ) {
     return Tooltip(
       message: tooltip,
       child: IconButton(
@@ -339,7 +375,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
     );
   }
 
-  void _addNewDownload(String url, String filename) {
+  void _addNewDownload(String url, String filename) async {
     final newDownload = DownloadItem(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       filename: filename,
@@ -350,16 +386,98 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
       status: DownloadStatus.downloading,
       progress: 0.0,
     );
-    
+
     setState(() {
       _allDownloads.add(newDownload);
     });
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Added download: $filename'),
-        backgroundColor: Colors.green,
-      ),
-    );
+
+    // Save to file
+    await _saveDownloads();
+
+    // Start the download using DownloadService
+    try {
+      await DownloadService.startDownload(newDownload);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Started download: $filename'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to start download: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _resumeSelectedDownloads() async {
+    final selectedDownloads = _allDownloads.where((d) => d.isSelected).toList();
+
+    if (selectedDownloads.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No downloads selected')));
+      return;
+    }
+
+    for (final download in selectedDownloads) {
+      try {
+        await DownloadService.resumeDownload(download);
+        setState(() {
+          final index = _allDownloads.indexWhere((d) => d.id == download.id);
+          if (index != -1) {
+            _allDownloads[index] = download.copyWith(
+              status: DownloadStatus.downloading,
+            );
+          }
+        });
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to resume ${download.filename}: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+
+    await _saveDownloads();
+  }
+
+  void _pauseSelectedDownloads() async {
+    final selectedDownloads = _allDownloads.where((d) => d.isSelected).toList();
+
+    if (selectedDownloads.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No downloads selected')));
+      return;
+    }
+
+    for (final download in selectedDownloads) {
+      try {
+        DownloadService.pauseDownload(download.id);
+        setState(() {
+          final index = _allDownloads.indexWhere((d) => d.id == download.id);
+          if (index != -1) {
+            _allDownloads[index] = download.copyWith(
+              status: DownloadStatus.paused,
+            );
+          }
+        });
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to pause ${download.filename}: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+
+    await _saveDownloads();
   }
 }

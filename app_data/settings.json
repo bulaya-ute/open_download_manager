@@ -1,0 +1,1 @@
+{"defaultDownloadLocation":"Downloads","maxSimultaneousDownloads":4,"groupByFileType":false,"downloadSpeedLimit":false,"speedLimitValue":50.0,"speedLimitUnit":"KB/s","fileTypeGroups":{"png,jpeg,jpg":"Images","mp4,webm":"Videos","pdf,doc,docx":"Documents"},"language":"English","theme":"System","startWithSystem":false,"minimizeToTray":false}
