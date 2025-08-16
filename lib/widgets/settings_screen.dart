@@ -18,6 +18,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _downloadSpeedLimit = false;
   double _speedLimitValue = 50;
   String _speedLimitUnit = 'KB/s';
+  String _selectedTheme = 'System'; // Added theme selection
 
   // File type groupings
   final List<Map<String, String>> _fileTypeGroups = [
@@ -206,6 +207,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return _buildDownloadsContent();
       case 'General':
         return _buildGeneralContent();
+      case 'Appearance':
+        return _buildAppearanceContent();
       case 'Privacy & Security':
         return _buildPrivacyContent();
       case 'Advanced':
@@ -542,7 +545,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildAppearanceContent() {
-    // implement this
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSettingSection(
+          'Theme',
+          'Choose your preferred appearance theme',
+          Column(
+            children: [
+              RadioListTile<String>(
+                title: const Text('System'),
+                subtitle: const Text('Follow system theme settings'),
+                value: 'System',
+                groupValue: _selectedTheme,
+                onChanged: (value) {
+                  setState(() {
+                    _selectedTheme = value!;
+                  });
+                },
+                contentPadding: EdgeInsets.zero,
+              ),
+              RadioListTile<String>(
+                title: const Text('Light'),
+                subtitle: const Text('Use light theme'),
+                value: 'Light',
+                groupValue: _selectedTheme,
+                onChanged: (value) {
+                  setState(() {
+                    _selectedTheme = value!;
+                  });
+                },
+                contentPadding: EdgeInsets.zero,
+              ),
+              RadioListTile<String>(
+                title: const Text('Dark'),
+                subtitle: const Text('Use dark theme'),
+                value: 'Dark',
+                groupValue: _selectedTheme,
+                onChanged: (value) {
+                  setState(() {
+                    _selectedTheme = value!;
+                  });
+                },
+                contentPadding: EdgeInsets.zero,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        Text(
+          'Theme changes will be applied after restarting the application.',
+          style: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 14,
+            fontStyle: FontStyle.italic,
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildPrivacyContent() {
@@ -658,7 +718,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
                 ),
                 Text('Version 1.0.0'),
-                Text('Build 2024.07.14'),
+                Text('Build 2025.08.10'),
               ],
             ),
           ],
@@ -670,7 +730,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         const SizedBox(height: 24),
         const Text(
-          'Copyright © 2024 Open Download Manager Team',
+          'Copyright © 2025 Open Download Manager Team',
           style: TextStyle(color: Colors.grey),
         ),
         const SizedBox(height: 24),

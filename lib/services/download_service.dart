@@ -12,8 +12,14 @@ class DownloadService {
   static final Map<String, StreamController<DownloadItem>> _downloadStreams =
       {};
   static final Map<String, bool> _pausedDownloads = {};
+  static final Map<String, int> _retryAttempts = {};
   static int _activeDownloads = 0;
   static AppSettings? _settings;
+
+  // Configuration constants
+  static const int _chunkSize = 131072; // 128KB chunks
+  static const int _maxRetryAttempts = 3; // Maximum retry attempts
+  static const int _retryDelaySeconds = 1; // Initial retry delay
 
   /// Initialize download service
   static Future<void> initialize() async {
@@ -36,10 +42,13 @@ class DownloadService {
     final controller = StreamController<DownloadItem>();
     _downloadStreams[downloadItem.id] = controller;
 
+    // Initialize retry counter
+    _retryAttempts[downloadItem.id] = 0;
+
     try {
-      await _performDownload(downloadItem, controller);
+      await _performDownloadWithRetry(downloadItem, controller);
     } catch (e) {
-      print('Download error: $e');
+      print('Download failed after all retries: $e');
       await _updateDownloadStatus(
         downloadItem,
         DownloadStatus.failed,
@@ -48,10 +57,48 @@ class DownloadService {
     } finally {
       _activeDownloads--;
       _downloadStreams.remove(downloadItem.id);
+      _retryAttempts.remove(downloadItem.id);
       controller.close();
 
       // Start next queued download
       await _startNextQueuedDownload();
+    }
+  }
+
+  /// Perform download with retry logic
+  static Future<void> _performDownloadWithRetry(
+    DownloadItem downloadItem,
+    StreamController<DownloadItem> controller,
+  ) async {
+    while (_retryAttempts[downloadItem.id]! <= _maxRetryAttempts) {
+      try {
+        await _performDownload(downloadItem, controller);
+        return; // Success, exit retry loop
+      } catch (e) {
+        _retryAttempts[downloadItem.id] = _retryAttempts[downloadItem.id]! + 1;
+
+        if (_retryAttempts[downloadItem.id]! > _maxRetryAttempts) {
+          throw e; // Max retries exceeded, rethrow error
+        }
+
+        // Calculate exponential backoff delay
+        final delaySeconds =
+            _retryDelaySeconds * (1 << (_retryAttempts[downloadItem.id]! - 1));
+        print(
+          'Download attempt ${_retryAttempts[downloadItem.id]} failed for ${downloadItem.filename}. Retrying in ${delaySeconds}s: $e',
+        );
+
+        // Update status to show retry
+        await _updateDownloadStatus(
+          downloadItem,
+          DownloadStatus.downloading,
+          errorMessage:
+              'Retrying in ${delaySeconds}s... (attempt ${_retryAttempts[downloadItem.id]}/$_maxRetryAttempts)',
+        );
+
+        // Wait before retry with exponential backoff
+        await Future.delayed(Duration(seconds: delaySeconds));
+      }
     }
   }
 
@@ -88,6 +135,14 @@ class DownloadService {
       final downloadDir = _settings?.defaultDownloadLocation ?? 'Downloads';
       final downloadPath = path.join(downloadDir, downloadItem.filename);
       final odmPath = '$downloadPath.odm';
+
+      // Check if final file already exists (not ODM file)
+      final finalFile = File(downloadPath);
+      if (await finalFile.exists()) {
+        // For now, just overwrite (as requested)
+        // TODO: Add dialog options for rename/overwrite/cancel in future iterations
+        await finalFile.delete();
+      }
 
       // Check if ODM file exists (resume download)
       ODMFile? existingODM;
@@ -144,7 +199,6 @@ class DownloadService {
       // Download in chunks
       final chunks = <int>[];
       int downloadedBytes = startByte;
-      const chunkSize = 8192; // 8KB chunks
 
       await for (final chunk in response.stream) {
         // Check if download is paused
@@ -156,8 +210,8 @@ class DownloadService {
         chunks.addAll(chunk);
         downloadedBytes += chunk.length;
 
-        // Update ODM file every 64KB or at the end
-        if (chunks.length >= chunkSize * 8 || downloadedBytes >= totalSize) {
+        // Write to ODM file when we reach the chunk size (128KB) or at the end
+        if (chunks.length >= _chunkSize || downloadedBytes >= totalSize) {
           await ODMFile.appendToODMFile(odmPath, Uint8List.fromList(chunks));
           chunks.clear();
         }

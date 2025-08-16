@@ -122,6 +122,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   child: ListView(
                     children: [
                       _buildSidebarItem(Icons.settings, 'General'),
+                      // _bu
                       _buildSidebarItem(Icons.download, 'Downloads'),
                       _buildSidebarItem(Icons.security, 'Privacy & Security'),
                       _buildSidebarItem(Icons.tune, 'Advanced'),
