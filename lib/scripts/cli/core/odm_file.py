@@ -2,7 +2,11 @@ import json
 import time
 from pathlib import Path
 from typing import Optional
-from ..core.config import DEFAULT_DOWNLOAD_DIR
+
+from lib.scripts.cli.core.config import DEFAULT_DOWNLOAD_DIR
+
+
+# from . import DEFAULT_DOWNLOAD_DIR
 
 
 class ODMFile:
@@ -14,7 +18,6 @@ class ODMFile:
             self,
             url: str,
             website: str,
-            download_dir: str,
             download_filename: str,
             file_size: Optional[int] = None,
             downloaded_bytes: int = 0,
@@ -22,7 +25,9 @@ class ODMFile:
             last_attempt: Optional[float] = None,
             preallocated: bool = False,
             completed: bool = False,
-            odm_filepath: Optional[Path] = None
+            odm_filepath: Optional[Path] = None,
+            download_dir: str = None,
+
     ):
         """Initializes an ODMFile instance.
 
@@ -50,20 +55,6 @@ class ODMFile:
         self.preallocated = preallocated
         self.completed = completed
         self.odm_filepath = odm_filepath
-
-    def save(self):
-        """Writes metadata and (optionally) payload to the .odm file."""
-        if not self.odm_filepath:
-            raise ValueError("Cannot save ODMFile: filepath is not set")
-
-        meta = self.to_dict()
-        meta_json = json.dumps(meta).encode("utf-8")
-        header = len(meta_json).to_bytes(self.HEADER_SIZE, "big")
-
-        # Write header + metadata (payload will come later if needed)
-        with open(self.odm_filepath, "wb") as f:
-            f.write(header)
-            f.write(meta_json)
 
     def update(self):
         """Updates metadata in an existing ODM file (without touching payload)."""
@@ -94,19 +85,37 @@ class ODMFile:
             "completed": self.completed,
         }
 
+    def update_metadata(self, **kwargs):
+        for attr, val in kwargs.items():
+            if not hasattr(self, attr):
+                raise KeyError(f"Unknown attribute: {attr}")
+            setattr(self, attr, val)
+
+    def get_metadata(self) -> dict:
+        return self.to_dict()
+
     def append_to_payload(self, data: bytes) -> None:
         """Appends bytes to the ODM payload and updates metadata."""
-        with open(self.filepath, "r+b") as f:
+        if not self.odm_filepath or not Path(self.odm_filepath).exists():
+            raise FileNotFoundError("ODM file does not exist")
+
+        with open(self.odm_filepath, "r+b") as f:
             # Seek to end of payload
-            f.seek(self.metadata["header_size"] + self.metadata["downloaded_bytes"])
+            f.seek(ODMFile.HEADER_SIZE + self.downloaded_bytes)
             f.write(data)
 
-            # Rewrite updated header
-            self._write_metadata(f)
-
             # Update metadata
-            self.metadata["downloaded_bytes"] += len(data)
-            self.metadata["last_download_attempt"] = time.time()
+            self.downloaded_bytes += len(data)
+            self.last_attempt = time.time()
+
+            # Rewrite updated header
+            meta_json = json.dumps(self.to_dict()).encode("utf-8")
+            if len(meta_json) > ODMFile.HEADER_SIZE:
+                raise ValueError("Metadata too large for header")
+            padded_header = meta_json + b'\x00' * (ODMFile.HEADER_SIZE - len(meta_json))
+
+            f.seek(0)
+            f.write(padded_header)
 
     @classmethod
     def from_dict(cls, data: dict, filepath: Path):
@@ -171,3 +180,15 @@ class ODMFile:
             # Current position is already at start of payload
 
         return ODMFile.from_dict(data, filepath=path)
+
+    def get_resume_byte(self) -> int:
+        """Get the byte to start writing the payload from"""
+        return ODMFile.HEADER_SIZE + self.downloaded_bytes
+
+
+if __name__ == "__main__":
+    odm = ODMFile.create("http://example.com/file.zip", None, "example")
+    print(odm.to_dict())
+
+    loaded_odm = ODMFile.load(str(odm.odm_filepath))
+    print(loaded_odm.to_dict())

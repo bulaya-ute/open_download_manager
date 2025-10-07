@@ -1,11 +1,11 @@
 from . import config, downloader, odm_file
-from ..utils import logger
+from utils import logger
 
 _current_odm = None  # Active ODM file object
 
 def initialize_environment() -> None:
     logger.log("Initializing ODM environment...")
-    config.create_default_structure()
+    # config.create_default_structure()
     logger.log("ODM environment initialized.")
 
 def start_download(url: str, output: str | None) -> None:
@@ -16,7 +16,7 @@ def start_download(url: str, output: str | None) -> None:
 def open_odm_file(filepath: str) -> None:
     global _current_odm
     logger.log(f"Opening ODM file: {filepath}")
-    _current_odm = odm_file.load(filepath)
+    _current_odm = odm_file.ODMFile.load(filepath)
 
 def resume_download() -> None:
     if not _current_odm:

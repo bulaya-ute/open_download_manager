@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "ODM Capture",
+  "version": "1.0",
+  "description": "Intercepts downloads and redirects them to the Offline Download Manager (ODM).",
+  "permissions": [
+    "downloads",
+    "downloads.shelf",
+    "nativeMessaging",
+    "webRequest",
+    "webRequestBlocking",
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "128": "icons/odm_icon.png"
+  },
+  "action": {
+    "default_title": "ODM Capture"
+  }
+}

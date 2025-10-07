@@ -1,10 +1,8 @@
 import typer
 
-from .core import manager
+from core import manager
 
-# from odm.core import manager
-
-app = typer.Typer(help="Open Download Manager (ODM) CLI")
+app = typer.Typer(help="Open Download Manager (ODM) CLI. This tool let's you manage downloads from the command line.")
 
 
 @app.command()
@@ -24,6 +22,10 @@ def open_(file: str):
     """Open an existing ODM file."""
     manager.open_odm_file(file)
 
+@app.command()
+def view():
+    """View the contents of an existing ODM file."""
+    raise NotImplementedError
 
 @app.command()
 def resume():
@@ -53,3 +55,7 @@ def cleanup():
 def list():
     """List all ODM files in the default directory."""
     manager.list_downloads()
+
+
+if __name__ == "__main__":
+    app()
