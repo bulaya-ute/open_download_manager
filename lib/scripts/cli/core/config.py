@@ -1,8 +1,9 @@
 from pathlib import Path
 
-DEFAULT_DOWNLOAD_DIR = Path.home() / "downloads"
+DEFAULT_DOWNLOAD_DIR = Path.home() / "Downloads" / "ODM Downloads"
 CONFIG_FILE = Path(__file__).resolve().parent.parent / "config.json"
 VERSION = "0.1.0"
+
 
 # def create_default_structure() -> None:
 #     os.makedirs(DEFAULT_DOWNLOAD_DIR, exist_ok=True)

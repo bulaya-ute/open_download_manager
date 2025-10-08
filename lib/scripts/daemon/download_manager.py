@@ -1,14 +1,15 @@
-import time
 from pathlib import Path
 from threading import Thread
 import requests
-from lib.scripts.cli.core.odm_file import ODMFile
+from ..cli.core.odm_file import ODMFile
+# from lib.scripts.cli.core.odm_file import ODMFile
 
 
 class DownloadManager:
 
     def __init__(self):
         self.active_downloads: list["Download"] = []
+
 
     def add_download(self, odm_file_path, start=True):
         resolved_path = Path(odm_file_path).resolve()
@@ -19,15 +20,14 @@ class DownloadManager:
         if start:
             download_object.start()
 
-    def download_file(self, url: str, destination: str):
+    def download_file(self, url: str, download_dir: str = None, download_filename: str = None):
         """Simulated download process."""
-        self.active_downloads[url] = "in_progress"
-        for i in range(5):
-            time.sleep(1)  # simulate chunks
-        self.active_downloads[url] = "completed"
+        odm_file = ODMFile.create(url=url, download_dir=download_dir, download_filename=download_filename)
+        self.add_download(odm_file.odm_filepath)
 
     def get_status(self):
-        return self.active_downloads
+        return {active_download.odm_file_path: active_download.get_status() for active_download in
+                self.active_downloads}
 
 
 class Download:
@@ -38,6 +38,9 @@ class Download:
         self._odm_object = ODMFile.load(self.odm_file_path)
         self.chunk_size = chunk_size
         self._stop_flag = False  # Will be set to true when intentionally stopping a download
+
+        # Cal
+        self.on_download_complete = None
 
     def start(self):
         """Begin or resume a download"""
@@ -77,6 +80,8 @@ class Download:
                     if chunk:
                         self.is_downloading = True
                         odm.append_to_payload(chunk)
+                self._odm_object.decapsulate_payload()
+                print("Complete")
             self.is_downloading = False
         except Exception as e:
             print(f"Error while downloading '{odm.odm_filepath}': {e}")
@@ -87,4 +92,12 @@ class Download:
             "downloaded_bytes": self._odm_object.downloaded_bytes,
             "total_bytes": self._odm_object.file_size,
             "status": "In progress" if self.is_downloading else "Paused",
+            "download_percentage": (self._odm_object.downloaded_bytes / self._odm_object.file_size) if (
+                        self._odm_object.file_size and self._odm_object.file_size > 0) else "Unknown",
+            "download_speed": self._odm_object.download_speed,
         }
+
+
+if __name__ == "__main":
+    dm = DownloadManager()
+    dm.download_file("https://file-examples.com/storage/fec3b5899d68e409b975425/2017/10/file-example_PDF_1MB.pdf")
