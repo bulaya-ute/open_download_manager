@@ -12,16 +12,18 @@ from odm_file import ODMFile
 class DownloadManager:
 
     def __init__(self):
-        self.active_downloads: list["Download"] = []
+        self.active_downloads: dict["Path", "Download"] = {}
 
     def add_download(self, odm_file_path, start=True):
         resolved_path = Path(odm_file_path).resolve()
-        if resolved_path in {Path(p.odm_file_path).resolve() for p in self.active_downloads}:
-            raise ValueError(f"File already added to active downloads: {resolved_path}")
-        download_object = Download(str(resolved_path),
-                                   # on_progress=lambda prog: print(self.get_status())
-                                   )
-        self.active_downloads.append(download_object)
+        if resolved_path not in self.active_downloads.keys():
+            download_object = Download(str(resolved_path),
+                                       # on_progress=lambda prog: print(self.get_status())
+                                       )
+            self.active_downloads[resolved_path] = download_object
+        else:
+            download_object = self.active_downloads[resolved_path]
+
         if start:
             download_object.resume()
 
@@ -48,12 +50,18 @@ class DownloadManager:
         self.add_download(odm_file.odm_filepath, start=True)
 
     def get_status(self):
-        return {active_download.odm_file_path: active_download.get_status() for active_download in
+        return {active_download.download_filename: active_download.get_status() for active_download in
                 self.active_downloads}
 
 
 class Download:
+    delegated_attrs = {
+        "download_filename",
+        "download_dir"
+    }
+
     def __init__(self, odm_file_path: str, chunk_size: int = 8192, on_error=None, on_progress=None, on_complete=None, ):
+        self._download_speed = 0
         self.is_downloading = False
         self.thread = None
         self.odm_file_path = odm_file_path
@@ -65,6 +73,116 @@ class Download:
         self.on_progress = on_progress
         self.on_error = on_error
         self.on_complete = on_complete
+
+    def __getattr__(self, name):
+        """Custom attribute access for delegated properties"""
+
+        if name in self.delegated_attrs:
+            header_attr = name
+            return getattr(self._odm_object.header, header_attr)
+        return super().__getattribute__(name)
+
+        # raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+
+    def __setattr__(self, name, value):
+        """Custom attribute setting for delegated properties"""
+
+        if name in self.delegated_attrs:
+            header_attr = name
+            setattr(self.header, header_attr, value)
+        else:
+            super().__setattr__(name, value)
+
+    def get_download_speed(self, unit="B", formatted=False) -> float | str:
+        """
+        Get the current download speed.
+
+        Args:
+            unit (str): The unit to convert the speed to. Supported units are:
+                - "B", "byte", "bytes" (bytes per second)
+                - "KB", "kilobyte", "kilobytes" (kilobytes per second)
+                - "MB", "megabyte", "megabytes" (megabytes per second)
+                - "GB", "gigabyte", "gigabytes" (gigabytes per second)
+                - None: automatically selects the most appropriate unit
+                Defaults to "B".
+
+            formatted (bool): If True, returns a formatted string like "1024.5 KB/s".
+                If False, returns a float value. Defaults to False.
+
+        Returns:
+            float | str: The download speed as a float (if formatted=False) or
+                as a formatted string (if formatted=True).
+
+        Examples:
+            >>> get_download_speed()  # Returns speed in bytes/second
+            1048576.0
+            >>> get_download_speed(unit="MB")  # Returns speed in megabytes/second
+            1.0
+            >>> get_download_speed(unit="MB", formatted=True)  # Returns formatted string
+            "1.0 MB/s"
+            >>> get_download_speed(unit=None, formatted=True)  # Auto unit selection
+            "1.0 MB/s"
+        """
+        speed = self._download_speed
+
+        # Unit conversion factors (to bytes)
+        unit_conversions = {
+            "b": 1,
+            "byte": 1,
+            "bytes": 1,
+            "kb": 1024,
+            "kilobyte": 1024,
+            "kilobytes": 1024,
+            "mb": 1024 ** 2,
+            "megabyte": 1024 ** 2,
+            "megabytes": 1024 ** 2,
+            "gb": 1024 ** 3,
+            "gigabyte": 1024 ** 3,
+            "gigabytes": 1024 ** 3,
+        }
+
+        # Unit display names
+        unit_names = {
+            "b": "B",
+            "byte": "B",
+            "bytes": "B",
+            "kb": "KB",
+            "kilobyte": "KB",
+            "kilobytes": "KB",
+            "mb": "MB",
+            "megabyte": "MB",
+            "megabytes": "MB",
+            "gb": "GB",
+            "gigabyte": "GB",
+            "gigabytes": "GB",
+        }
+
+        # Auto-select appropriate unit if None
+        if unit is None:
+            if speed >= 1024 ** 3:
+                unit = "GB"
+            elif speed >= 1024 ** 2:
+                unit = "MB"
+            elif speed >= 1024:
+                unit = "KB"
+            else:
+                unit = "B"
+
+        # Get the conversion factor
+        unit_lower = unit.lower()
+        if unit_lower not in unit_conversions:
+            raise ValueError(f"Unsupported unit: {unit}. Supported units are: B, KB, MB, GB")
+
+        divisor = unit_conversions[unit_lower]
+        display_unit = unit_names[unit_lower]
+
+        # Convert speed to the requested unit
+        converted_speed = speed / divisor
+
+        if formatted:
+            return f"{converted_speed:.2f} {display_unit}/s"
+        else:
+            return converted_speed
 
     def resume(self):
         """Resume a download"""
@@ -151,7 +269,7 @@ class Download:
                         # download_speed_mbps = download_speed_bps / (1024 * 1024)
 
                         # print(f"Download speed: {download_speed_mbps:.2f} MB/s ({download_speed_bps / 1024:.2f} KB/s)")
-                        self.download_speed = download_speed_bps
+                        self._download_speed = download_speed_bps
 
                         if self.on_progress:
                             self.on_progress(self._odm_object.get_resume_byte() + len(chunk))
@@ -205,10 +323,12 @@ class Download:
         return {
             "downloaded_bytes": self._odm_object.header.downloaded_bytes,
             "total_bytes": self._odm_object.header.file_size,
+            "download_progress": f"{self._odm_object.header.downloaded_bytes / self._odm_object.header.file_size * 100 : .2f}%" if self._odm_object.header.file_size else "Unknown",
             "status": "In progress" if self.is_downloading else "Paused",
             "download_percentage": (self._odm_object.header.downloaded_bytes / self._odm_object.header.file_size) if (
                     self._odm_object.header.file_size and self._odm_object.header.file_size > 0) else "Unknown",
-            "download_speed": self._odm_object.download_speed,
+            "download_speed": self.get_download_speed(unit=None, formatted=True),
+            "supports resume": self._odm_object.header.supports_resume if self._odm_object.header.supports_resume is not None else "Unknown",
         }
 
 
