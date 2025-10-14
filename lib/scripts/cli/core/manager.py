@@ -10,7 +10,7 @@ def initialize_environment() -> None:
 
 def start_download(url: str, output: str | None) -> None:
     logger.log(f"Starting download for {url}")
-    odm = odm_file.ODMFile.create(url, output)
+    odm = odm_file.ODMFile.create_new(url, output)
     downloader.start(odm)
 
 def open_odm_file(filepath: str) -> None:

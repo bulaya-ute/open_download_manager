@@ -2,6 +2,7 @@ from pathlib import Path
 
 DEFAULT_DOWNLOAD_DIR = Path.home() / "Downloads" / "ODM Downloads"
 CONFIG_FILE = Path(__file__).resolve().parent.parent / "config.json"
+DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 VERSION = "0.1.0"
 
 

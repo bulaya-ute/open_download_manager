@@ -19,9 +19,6 @@ def root():
 
 @app.post("/download")
 def start_download(url: str, download_dir: str = None):
-    # print(f"Received url: {url}\n"
-    #       f"Download dir: {download_dir}", flush=True)
-
     manager.download_file(url)
     return {"status": "started", }
 
@@ -32,4 +29,4 @@ def get_status():
 
 
 if __name__ == "__main__":
-    subprocess.run("uvicorn lib.scripts.daemon.daemon_main:app --reload --host 127.0.0.1 --port 8000".split())
+    subprocess.run("uvicorn lib.scripts.daemon.daemon_main:app --reload --host 127.0.0.1 --port 6060".split())
