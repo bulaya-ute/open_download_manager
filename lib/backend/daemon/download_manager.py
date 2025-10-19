@@ -50,8 +50,8 @@ class DownloadManager:
         self.add_download(odm_file.odm_filepath, start=True)
 
     def get_status(self):
-        return {active_download.download_filename: active_download.get_status() for active_download in
-                self.active_downloads}
+        return {odm_path: download.get_status() for odm_path, download in
+                self.active_downloads.items()}
 
 
 class Download:

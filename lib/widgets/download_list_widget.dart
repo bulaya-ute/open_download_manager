@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import '../models/download_item.dart';
+import 'package:open_download_manager/services/download_service.dart';
+// import '../models/download_item.dart';
 
 class DownloadListWidget extends StatefulWidget {
-  final List<DownloadItem> downloads;
+  final List<Download> downloads;
   final String currentTab;
-  final Function(DownloadItem) onToggleSelection;
+  final Function(Download) onToggleSelection;
   final Function() onSelectAll;
   final Function() onDeselectAll;
 
@@ -115,7 +116,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
     );
   }
 
-  Widget _buildDownloadRow(DownloadItem download) {
+  Widget _buildDownloadRow(Download download) {
     return GestureDetector(
       onSecondaryTapDown: (details) {
         _showContextMenu(details.globalPosition, download);
@@ -132,7 +133,8 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
             Checkbox(
               value: download.isSelected,
               onChanged: (value) {
-                widget.onToggleSelection(download);
+                // widget.onToggleSelection(download);
+                download.isSelected = value!;
               },
             ),
             // Filename
@@ -161,7 +163,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                 child: Text(
-                  download.size,
+                  "${download.fileSize}",
                   style: const TextStyle(fontSize: 14),
                 ),
               ),
@@ -187,7 +189,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                 child: Text(
-                  download.speed,
+                  "${download.speed}",
                   style: const TextStyle(fontSize: 14),
                 ),
               ),
@@ -198,7 +200,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                 child: Text(
-                  download.dateAdded,
+                  "${download.dateAdded}",
                   style: const TextStyle(fontSize: 14),
                 ),
               ),
@@ -223,7 +225,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
           color: Colors.blue,
           size: 20,
         );
-      case DownloadStatus.failed:
+      case DownloadStatus.error:
         return const Icon(
           Icons.error,
           color: Colors.red,
@@ -235,25 +237,35 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
           color: Colors.orange,
           size: 20,
         );
+      case DownloadStatus.stopped:
+        return const Icon(
+          Icons.pause_circle,
+          color: Colors.orange,
+          size: 20,
+        );
     }
   }
 
-  Widget _buildStatusColumn(DownloadItem download) {
+  Widget _buildStatusColumn(Download download) {
     String statusText = '';
     Widget statusIcon = _getStatusIcon(download.status);
+    String progress = (download.progress == null) ? "Unknown" : "${(download.progress! * 100).toInt()}%";
     
     switch (download.status) {
       case DownloadStatus.completed:
         statusText = 'Completed';
         break;
       case DownloadStatus.downloading:
-        statusText = 'Downloading... ${(download.progress * 100).toInt()}%';
+        statusText = 'Downloading... $progress';
         break;
-      case DownloadStatus.failed:
-        statusText = download.errorMessage ?? 'Failed. ${(download.progress * 100).toInt()}%';
+      case DownloadStatus.error:
+        statusText = download.errorMessage ?? 'Failed. $progress';
         break;
       case DownloadStatus.paused:
-        statusText = 'Paused. ${(download.progress * 100).toInt()}%';
+        statusText = 'Paused. $progress';
+        break;
+      case DownloadStatus.stopped:
+        statusText = 'Stopped. $progress';
         break;
     }
     
@@ -272,7 +284,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
     );
   }
 
-  void _showContextMenu(Offset position, DownloadItem download) {
+  void _showContextMenu(Offset position, Download download) {
     final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
     
     showMenu<String>(
@@ -325,19 +337,19 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
         const PopupMenuDivider(),
         PopupMenuItem<String>(
           value: 'refresh_link',
-          enabled: download.status == DownloadStatus.failed,
+          enabled: download.status == DownloadStatus.error,
           child: Row(
             children: [
               Icon(
                 Icons.refresh,
                 size: 16,
-                color: download.status == DownloadStatus.failed ? null : Colors.grey,
+                color: download.status == DownloadStatus.error ? null : Colors.grey,
               ),
               const SizedBox(width: 8),
               Text(
                 'Refresh download link',
                 style: TextStyle(
-                  color: download.status == DownloadStatus.failed ? null : Colors.grey,
+                  color: download.status == DownloadStatus.error ? null : Colors.grey,
                 ),
               ),
             ],
@@ -421,7 +433,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
     });
   }
 
-  void _handleContextMenuAction(String action, DownloadItem download) {
+  void _handleContextMenuAction(String action, Download download) {
     switch (action) {
       case 'refresh_link':
         ScaffoldMessenger.of(context).showSnackBar(

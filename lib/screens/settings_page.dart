@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/app_settings.dart';
-import '../services/data_service.dart';
+// import '../services/data_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -23,12 +23,8 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
-    _loadSettings();
-  }
-
-  Future<void> _loadSettings() async {
     try {
-      _settings = await DataService.loadSettings();
+      // _settings = await DataService.loadSettings();
       _fileTypeGroups = _settings.fileTypeGroups.entries
           .map((e) => {'types': e.key, 'folder': e.value})
           .toList();
@@ -42,6 +38,7 @@ class _SettingsPageState extends State<SettingsPage> {
       });
     }
   }
+
 
   Future<void> _saveSettings() async {
     try {
@@ -58,7 +55,7 @@ class _SettingsPageState extends State<SettingsPage> {
         fileTypeGroups: fileTypeGroupsMap,
       );
 
-      await DataService.saveSettings(updatedSettings);
+      // await DataService.saveSettings(updatedSettings);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

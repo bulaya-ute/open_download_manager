@@ -1,1 +1,27 @@
-{"defaultDownloadLocation":"Downloads","maxSimultaneousDownloads":4,"groupByFileType":false,"downloadSpeedLimit":false,"speedLimitValue":50.0,"speedLimitUnit":"KB/s","fileTypeGroups":{"png,jpeg,jpg":"Images","mp4,webm":"Videos","pdf,doc,docx":"Documents"},"language":"English","theme":"System","startWithSystem":false,"minimizeToTray":false}
+ {
+    "partialDownloadFileExtension": ".odm",
+    "downloadDir": "~/Downloads/OpenDownloadManager",
+    "maxSimultaneousDownloads": 4,
+    "downloadSpeedLimit": null,
+    "groupByFileType": false,
+    "fileTypeGroups": {
+      "Images": [
+        "png", "jpeg", "jpg", "gif", "webp",
+        "tiff", "bmp", "svg", "ico", "heic"
+      ],
+      "Videos": ["mp4", "webm", "mkv", "mov", "avi", "flv", "wmv", "3gp"],
+      "Documents": [
+        "pdf", "doc", "docx", "txt", "rtf", "xlsx", "xls", "csv",
+        "ods", "gsheet", "odt", "log", "pages", "md", "pptx", "ppt", "key",
+        "odp"
+      ],
+      "Audio": ["mp3", "wav", "aac", "flac", "m4a", "ogg", "wma"],
+      "Compressed": ["zip", "rar", "7z", "tar", "gz", "bz2", "xz", "iso"],
+      "Program": ["exe", "dmg", "app", "bin", "sh", "bat", "apk", "xapk", "ipa"],
+      "General": ["*"]
+    },
+    "language": "English",
+    "theme": "System",
+    "startWithSystem": true,
+    "minimizeToTray": true
+  }
