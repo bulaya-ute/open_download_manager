@@ -19,34 +19,33 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
   final TextEditingController _searchController = TextEditingController();
   AppSettings _settings = AppSettings();
   bool _isLoading = true;
+  List<Download> _downloads = DownloadService.downloads;
 
   @override
   void initState() {
     super.initState();
-
-    // Config.loadSettings();
-    DatabaseHelper.upsertDownload(partialFilePath: "number1", status: "completed");
-
-    // Load downloads list
-    DownloadService.loadDownloads(skipMissingFiles: false);
-
-    _isLoading = false;
+    _initializeData();
   }
 
-  Future<void> _saveDownloads() async {
-    try {
-      // await DataService.saveDownloads(DownloadService.downloads);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error saving downloads: $e')));
-      }
-    }
+  Future<void> refreshDownloadList() async {
+    debugPrint("Refreshing list...");
+    setState(() {});
+  }
+
+  Future<void> _initializeData() async {
+
+
+    // Load downloads list
+    await DownloadService.loadDownloads(skipMissingFiles: false);
+
+    setState(() {
+      _downloads = DownloadService.downloads;
+      _isLoading = false;
+    });
   }
 
   List<Download> get _filteredDownloads {
-    List<Download> filtered = DownloadService.downloads;
+    List<Download> filtered = _downloads;
 
     // Filter by tab
     switch (_currentTab) {
@@ -91,13 +90,13 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
   int _getTabCount(String tab) {
     switch (tab) {
       case 'all':
-        return DownloadService.downloads.length;
+        return _downloads.length;
       case 'completed':
-        return DownloadService.downloads
+        return _downloads
             .where((item) => item.status == DownloadStatus.completed)
             .length;
       case 'incomplete':
-        return DownloadService.downloads
+        return _downloads
             .where(
               (item) =>
                   item.status == DownloadStatus.downloading ||
@@ -105,7 +104,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
             )
             .length;
       case 'error':
-        return DownloadService.downloads
+        return _downloads
             .where((item) => item.status == DownloadStatus.error)
             .length;
       default:
@@ -135,7 +134,9 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
                 _buildToolbarButton(Icons.add, 'Add New Download', () async {
                   final result = await showDialog<Map<String, String>>(
                     context: context,
-                    builder: (context) => const AddDownloadDialog(),
+                    builder: (context) => AddDownloadDialog(
+                      onRefreshDownloadList: refreshDownloadList,
+                    ),
                   );
 
                   if (result != null) {
@@ -188,7 +189,13 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
                     ),
                   );
                 }),
+
+                const SizedBox(width: 8),
+                _buildRefreshButton(Icons.refresh, 'Refresh Downloads', () {
+                  refreshDownloadList();
+                }),
                 const Spacer(),
+
                 // Search field
                 SizedBox(
                   width: 300,
@@ -253,6 +260,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
               child: DownloadListWidget(
                 downloads: _filteredDownloads,
                 currentTab: _currentTab,
+                onRefreshDownloadList: refreshDownloadList,
                 onToggleSelection: (download) {
                   setState(() {
                     download.isSelected = !download.isSelected;
@@ -330,9 +338,28 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
     );
   }
 
+  Widget _buildRefreshButton(
+    IconData icon,
+    String tooltip,
+    VoidCallback onPressed,
+  ) {
+    return Tooltip(
+      message: tooltip,
+      child: IconButton(
+        icon: Icon(icon),
+        onPressed: onPressed,
+        style: IconButton.styleFrom(
+          backgroundColor: Colors.grey[100],
+          foregroundColor: Colors.grey[700],
+          padding: const EdgeInsets.all(8),
+        ),
+      ),
+    );
+  }
+
   void _addNewDownload(String url, String filename) async {
     final newDownload = Download(
-      partialFilePath: "",
+      partialFilePath: url,
       filename: filename,
       fileSize: 0,
       url: url,
@@ -344,11 +371,11 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
     );
 
     setState(() {
-      DownloadService.downloads.add(newDownload);
+      _downloads.add(newDownload);
     });
 
     // Save to file
-    await _saveDownloads();
+    // await _saveDownloads();
 
     // Start the download using DownloadService
     try {
@@ -370,7 +397,9 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
   }
 
   void _resumeSelectedDownloads() async {
-    final selectedDownloads = DownloadService.downloads.where((d) => d.isSelected).toList();
+    final selectedDownloads = _downloads
+        .where((d) => d.isSelected)
+        .toList();
 
     if (selectedDownloads.isEmpty) {
       ScaffoldMessenger.of(
@@ -383,9 +412,11 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
       try {
         // await DownloadService.resumeDownload(download);
         setState(() {
-          final index = DownloadService.downloads.indexWhere((d) => d.partialFilePath == download.partialFilePath);
+          final index = _downloads.indexWhere(
+            (d) => d.partialFilePath == download.partialFilePath,
+          );
           if (index != -1) {
-            DownloadService.downloads[index] = download.copyWith(
+            _downloads[index] = download.copyWith(
               status: DownloadStatus.downloading,
             );
           }
@@ -400,11 +431,13 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
       }
     }
 
-    await _saveDownloads();
+    // await _saveDownloads();
   }
 
   void _pauseSelectedDownloads() async {
-    final selectedDownloads = DownloadService.downloads.where((d) => d.isSelected).toList();
+    final selectedDownloads = _downloads
+        .where((d) => d.isSelected)
+        .toList();
 
     if (selectedDownloads.isEmpty) {
       ScaffoldMessenger.of(
@@ -417,9 +450,11 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
       try {
         // DownloadService.pauseDownload(download.id);
         setState(() {
-          final index = DownloadService.downloads.indexWhere((d) => d.partialFilePath == download.partialFilePath);
+          final index = _downloads.indexWhere(
+            (d) => d.partialFilePath == download.partialFilePath,
+          );
           if (index != -1) {
-            DownloadService.downloads[index] = download.copyWith(
+            _downloads[index] = download.copyWith(
               status: DownloadStatus.paused,
             );
           }
@@ -434,6 +469,6 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
       }
     }
 
-    await _saveDownloads();
+    // await _saveDownloads();
   }
 }

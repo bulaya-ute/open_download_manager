@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:open_download_manager/services/database_helper.dart';
+import 'package:open_download_manager/services/download_service.dart';
 
 enum FilenameStatus { loading, success, error, none }
 
 class AddDownloadDialog extends StatefulWidget {
-  const AddDownloadDialog({super.key});
+  final Future<void> Function() onRefreshDownloadList;
+
+  const AddDownloadDialog({super.key, required this.onRefreshDownloadList});
 
   @override
   State<AddDownloadDialog> createState() => _AddDownloadDialogState();
@@ -31,7 +35,7 @@ class _AddDownloadDialogState extends State<AddDownloadDialog> {
   void _onUrlChanged() {
     final url = _urlController.text.trim();
     final bool isValid = _isValidUrlFormat(url);
-    
+
     setState(() {
       _isValidUrl = isValid;
     });
@@ -59,7 +63,7 @@ class _AddDownloadDialogState extends State<AddDownloadDialog> {
   void _extractOrFetchFilename(String url) async {
     // First try to extract filename from URL
     String? extractedFilename = _extractFilenameFromUrl(url);
-    
+
     if (extractedFilename != null) {
       setState(() {
         _filenameController.text = extractedFilename;
@@ -71,7 +75,7 @@ class _AddDownloadDialogState extends State<AddDownloadDialog> {
         _filenameController.text = 'download.bin';
         _filenameStatus = FilenameStatus.loading;
       });
-      
+
       // Try to fetch filename from server
       await _fetchFilenameFromServer(url);
     }
@@ -81,7 +85,7 @@ class _AddDownloadDialogState extends State<AddDownloadDialog> {
     try {
       final uri = Uri.parse(url);
       final segments = uri.pathSegments;
-      
+
       if (segments.isNotEmpty) {
         final lastSegment = segments.last;
         if (lastSegment.contains('.') && !lastSegment.endsWith('/')) {
@@ -98,16 +102,16 @@ class _AddDownloadDialogState extends State<AddDownloadDialog> {
     try {
       // Simulate server request delay
       await Future.delayed(const Duration(seconds: 1));
-      
+
       // This is a simplified simulation. In a real app, you would:
       // 1. Make a HEAD request to the URL
       // 2. Check the Content-Disposition header
       // 3. Extract filename from the header
-      
+
       // For demo purposes, we'll simulate different outcomes
       final uri = Uri.parse(url);
       final host = uri.host.toLowerCase();
-      
+
       String filename;
       if (host.contains('github')) {
         filename = 'repository_archive.zip';
@@ -122,7 +126,7 @@ class _AddDownloadDialogState extends State<AddDownloadDialog> {
         });
         return;
       }
-      
+
       setState(() {
         _filenameController.text = filename;
         _filenameStatus = FilenameStatus.success;
@@ -161,19 +165,11 @@ class _AddDownloadDialogState extends State<AddDownloadDialog> {
           child: InkWell(
             onTap: _retryFetchFilename,
             borderRadius: BorderRadius.circular(4),
-            child: const Icon(
-              Icons.refresh,
-              size: 16,
-              color: Colors.orange,
-            ),
+            child: const Icon(Icons.refresh, size: 16, color: Colors.orange),
           ),
         );
       case FilenameStatus.success:
-        return const Icon(
-          Icons.check_circle,
-          size: 16,
-          color: Colors.green,
-        );
+        return const Icon(Icons.check_circle, size: 16, color: Colors.green);
       case FilenameStatus.none:
         return const SizedBox.shrink();
     }
@@ -182,9 +178,7 @@ class _AddDownloadDialogState extends State<AddDownloadDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
         width: 500,
         padding: const EdgeInsets.all(24),
@@ -199,10 +193,7 @@ class _AddDownloadDialogState extends State<AddDownloadDialog> {
                 const SizedBox(width: 8),
                 const Text(
                   'Add New Download',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
                 ),
                 const Spacer(),
                 IconButton(
@@ -215,14 +206,11 @@ class _AddDownloadDialogState extends State<AddDownloadDialog> {
               ],
             ),
             const SizedBox(height: 24),
-            
+
             // URL input field
             const Text(
               'Download URL',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 8),
             TextField(
@@ -246,14 +234,11 @@ class _AddDownloadDialogState extends State<AddDownloadDialog> {
               textInputAction: TextInputAction.next,
             ),
             const SizedBox(height: 16),
-            
+
             // Filename input field
             const Text(
               'Filename',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 8),
             TextField(
@@ -278,7 +263,7 @@ class _AddDownloadDialogState extends State<AddDownloadDialog> {
               },
             ),
             const SizedBox(height: 24),
-            
+
             // Action buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -289,18 +274,27 @@ class _AddDownloadDialogState extends State<AddDownloadDialog> {
                 ),
                 const SizedBox(width: 12),
                 ElevatedButton(
-                  onPressed: _isValidUrl && _filenameController.text.trim().isNotEmpty
-                      ? () {
-                          Navigator.of(context).pop({
-                            'url': _urlController.text.trim(),
-                            'filename': _filenameController.text.trim(),
-                          });
-                        }
-                      : null,
+                  onPressed: () {
+                    DatabaseHelper.upsertDownload(
+                      partialFilePath: _urlController.text.trim(),
+                      status: "paused",
+                    );
+                    DownloadService.loadDownloads();
+                    widget.onRefreshDownloadList();
+                    Navigator.of(context).pop(
+                      //   {
+                      //   'url': _urlController.text.trim(),
+                      //   'filename': _filenameController.text.trim(),
+                      // }
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
                   ),
                   child: const Text('Add Download'),
                 ),

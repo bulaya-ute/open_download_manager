@@ -20,7 +20,7 @@ class DownloadService {
   ///     files don't exist. If false, loads all records regardless.
   /// 
   /// Returns: List of Download objects loaded from the database
-  static Future<List<Download>> loadDownloads({bool skipMissingFiles = true}) async {
+  static Future<List<Download>> loadDownloads({bool skipMissingFiles = false}) async {
     final List<Download> loadedDownloads = [];
     
     try {
