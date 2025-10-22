@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:open_download_manager/models/app_settings.dart';
 import 'package:open_download_manager/screens/settings_page.dart';
-import 'package:open_download_manager/services/database_helper.dart';
+import 'package:open_download_manager/services/config.dart';
 import 'package:open_download_manager/services/download_service.dart';
+import 'package:open_download_manager/services/gateway.dart';
 import 'package:open_download_manager/widgets/add_download_dialog.dart';
 import 'package:open_download_manager/widgets/download_list_widget.dart';
 
@@ -17,7 +17,6 @@ class DownloadManagerHomePage extends StatefulWidget {
 class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
   String _currentTab = 'all';
   final TextEditingController _searchController = TextEditingController();
-  AppSettings _settings = AppSettings();
   bool _isLoading = true;
   List<Download> _downloads = DownloadService.downloads;
 
@@ -29,11 +28,23 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
 
   Future<void> refreshDownloadList() async {
     debugPrint("Refreshing list...");
-    setState(() {});
+    setState(() {
+      _downloads = DownloadService.downloads;
+    });
   }
 
   Future<void> _initializeData() async {
+    // Initilize modules
+    Config.init();
+    Gateway.init();
 
+    List<String> errors = [];
+
+    // // Check if the daemon is running
+    // if (await Gateway.isServerRunnning) {
+    //   debugPrint("Daemon not running, or running on unknown port");
+    //   errors.add("Daemon not running, or running on unknown port");
+    // }
 
     // Load downloads list
     await DownloadService.loadDownloads(skipMissingFiles: false);
@@ -397,9 +408,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
   }
 
   void _resumeSelectedDownloads() async {
-    final selectedDownloads = _downloads
-        .where((d) => d.isSelected)
-        .toList();
+    final selectedDownloads = _downloads.where((d) => d.isSelected).toList();
 
     if (selectedDownloads.isEmpty) {
       ScaffoldMessenger.of(
@@ -435,9 +444,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
   }
 
   void _pauseSelectedDownloads() async {
-    final selectedDownloads = _downloads
-        .where((d) => d.isSelected)
-        .toList();
+    final selectedDownloads = _downloads.where((d) => d.isSelected).toList();
 
     if (selectedDownloads.isEmpty) {
       ScaffoldMessenger.of(

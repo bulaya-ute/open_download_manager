@@ -8,10 +8,25 @@ import 'package:open_download_manager/services/config.dart';
 /// Responsible for communication with the back end
 class Gateway {
   static HttpClient? httpClient;
+  static WebSocket? _webSocket;
+  static bool _isWebSocketConnected = false;
+  static bool _shouldReconnect = true;
+  static StreamSubscription? _webSocketSubscription;
+  
+  /// Callback function to handle incoming WebSocket messages
+  /// You can set this to your own handler function
+  static void Function(dynamic message)? onWebSocketMessage;
+  
+  /// Callback function to handle WebSocket connection status changes
+  static void Function(bool isConnected)? onWebSocketStatusChange;
 
   static Future<void> init() async {
+    // Start server
     if (!await isServerRunnning) startServer();
     httpClient = HttpClient();
+
+    // Connect websocket
+    await connectWebSocket();
   }
 
   /// Send an HTTP request to the server
@@ -33,8 +48,10 @@ class Gateway {
   }) async {
     try {
       // Construct the full URL with query parameters
-      final baseUrl = 'http://${Config.serverUrl}';
+      final baseUrl = Config.serverUrl;
       Uri url;
+
+      print("SERVER: $baseUrl");
 
       if (queryParams != null && queryParams.isNotEmpty) {
         // Convert all query parameter values to strings
@@ -153,30 +170,15 @@ class Gateway {
 
   /// Send message to server and return true if expected message is received
   static Future<bool> get isServerRunnning async {
-    String serverUrl = Config.serverUrl;
-
     try {
       // Send a health check request to the server
-      final response = await http
-          .get(
-            Uri.parse('$serverUrl/health'),
-            headers: {'Content-Type': 'application/json'},
-          )
-          .timeout(
-            const Duration(seconds: 2),
-            onTimeout: () {
-              // Return a fake response on timeout
-              return http.Response('Timeout', 408);
-            },
-          );
+      final response = await sendRequest("GET", "/health");
 
       // Check if the response status is 200 OK
-      if (response.statusCode == 200) {
         try {
           print("Response received from server");
           // Parse the JSON response
-          final data = jsonDecode(response.body);
-
+          final data = response ?? {};
           // Check if the response contains the expected fields
           // Expected response: {"status": "ok", "service": "open_download_manager"}
           return data['status'] == 'ok' &&
@@ -185,9 +187,7 @@ class Gateway {
           // JSON parsing failed
           return false;
         }
-      }
 
-      return false;
     } on SocketException catch (_) {
       // Server is not reachable
       print("Server is not reachable");
@@ -203,9 +203,168 @@ class Gateway {
     }
   }
 
-  static Future<void> startServer() {
-    throw Exception("Start server logic not yet implemented!");
+  static Future<void> startServer() async {
+    // If server is already running, do nothing
+    if (await isServerRunnning) {
+      print("Server is already running");
+      return;
+    }
+
+    try {
+      print("Starting server...");
+      
+      // Get host and port from Config
+      final host = Config.serverHost ?? 'http://localhost';
+      final port = Config.serverPort ?? 8080;
+      
+      // Remove 'http://' or 'https://' from host if present
+      final cleanHost = host.replaceAll(RegExp(r'https?://'), '');
+      
+      // Path to the Python daemon script
+      final scriptPath = 'lib/backend/daemon/daemon_main.py';
+      
+      // Start the Python server process in the background
+      print("Running: python3 $scriptPath --host $cleanHost --port $port");
+      
+      await Process.start(
+        'python3',
+        [scriptPath, '--host', cleanHost, '--port', port.toString()],
+        mode: ProcessStartMode.detached,
+      );
+      
+      print("Server start command sent");
+      
+      // Wait a bit for the server to start
+      await Future.delayed(const Duration(seconds: 2));
+      
+      // Verify the server is running
+      if (await isServerRunnning) {
+        print("Server started successfully");
+      } else {
+        print("Server may not have started properly");
+      }
+      
+    } catch (e) {
+      error("Failed to start server: $e", throwError: false);
+    }
   }
+
+  /// Connect to the WebSocket server
+  static Future<void> connectWebSocket() async {
+    if (_isWebSocketConnected && _webSocket != null) {
+      print("WebSocket already connected");
+      return;
+    }
+
+    try {
+      print("Connecting to WebSocket...");
+      
+      // Get host and port from Config
+      final host = Config.serverHost ?? 'localhost';
+      final port = Config.serverPort ?? 8080;
+      
+      // Remove 'http://' or 'https://' from host if present
+      final cleanHost = host.replaceAll(RegExp(r'https?://'), '');
+      
+      // Construct WebSocket URL (ws:// for WebSocket)
+      final wsUrl = 'ws://$cleanHost:$port/ws';
+      
+      print("WebSocket URL: $wsUrl");
+      
+      // Connect to WebSocket
+      _webSocket = await WebSocket.connect(wsUrl);
+      _isWebSocketConnected = true;
+      
+      print("WebSocket connected successfully");
+      
+      // Notify status change
+      onWebSocketStatusChange?.call(true);
+      
+      // Listen to incoming messages
+      _webSocketSubscription = _webSocket!.listen(
+        (message) {
+          print("WebSocket message received: $message");
+          
+          // Call the message handler callback if set
+          onWebSocketMessage?.call(message);
+        },
+        onError: (error) {
+          print("WebSocket error: $error");
+          _handleWebSocketDisconnect();
+        },
+        onDone: () {
+          print("WebSocket connection closed");
+          _handleWebSocketDisconnect();
+        },
+        cancelOnError: false,
+      );
+      
+    } catch (e) {
+      print("Failed to connect to WebSocket: $e");
+      _isWebSocketConnected = false;
+      onWebSocketStatusChange?.call(false);
+      
+      // Attempt reconnection after delay
+      if (_shouldReconnect) {
+        print("Will attempt to reconnect in 5 seconds...");
+        await Future.delayed(const Duration(seconds: 5));
+        if (_shouldReconnect) {
+          await connectWebSocket();
+        }
+      }
+    }
+  }
+  
+  /// Handle WebSocket disconnection
+  static void _handleWebSocketDisconnect() {
+    _isWebSocketConnected = false;
+    _webSocket = null;
+    _webSocketSubscription?.cancel();
+    _webSocketSubscription = null;
+    
+    // Notify status change
+    onWebSocketStatusChange?.call(false);
+    
+    // Attempt reconnection if enabled
+    if (_shouldReconnect) {
+      print("Attempting to reconnect WebSocket in 5 seconds...");
+      Future.delayed(const Duration(seconds: 5), () {
+        if (_shouldReconnect) {
+          connectWebSocket();
+        }
+      });
+    }
+  }
+  
+  /// Disconnect WebSocket and prevent auto-reconnection
+  static Future<void> disconnectWebSocket() async {
+    print("Disconnecting WebSocket...");
+    _shouldReconnect = false;
+    
+    await _webSocketSubscription?.cancel();
+    _webSocketSubscription = null;
+    
+    await _webSocket?.close();
+    _webSocket = null;
+    
+    _isWebSocketConnected = false;
+    onWebSocketStatusChange?.call(false);
+    
+    print("WebSocket disconnected");
+  }
+  
+  /// Send a message through the WebSocket
+  static void sendWebSocketMessage(dynamic message) {
+    if (_webSocket != null && _isWebSocketConnected) {
+      _webSocket!.add(message);
+      print("WebSocket message sent: $message");
+    } else {
+      print("Cannot send message: WebSocket not connected");
+    }
+  }
+  
+  /// Check if WebSocket is connected
+  static bool get isWebSocketConnected => _isWebSocketConnected;
 
   static void print(String message) {
     debugPrint("[GATEWAY] $message");

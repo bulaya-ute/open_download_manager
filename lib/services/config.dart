@@ -34,7 +34,7 @@ class Config {
     "theme": "System",  // Options: Light, Dark, System
     "startWithSystem": true,  // For download capturing using background daemon
     "minimizeToTray": true,
-    "serverHost": "http:localhost",
+    "serverHost": "localhost",
     "serverPort": 8080,
   };
 
@@ -53,7 +53,11 @@ class Config {
 
   /// Construct server url
   static String get serverUrl {
-    return "$serverHost:$serverPort";
+    return "http://$serverHost:$serverPort";
+  }
+
+  static Future<void> init() async {
+    loadSettings();
   }
 
   /// Load settings from config file

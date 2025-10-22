@@ -70,9 +70,6 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
             itemCount: widget.downloads.length,
             itemBuilder: (context, index) {
               final download = widget.downloads[index];
-              print("Download $index: $download");
-              // return Placeholder();
-              // final row = _buildDownloadRow(download);
               final row = buildDownloadRow(download);
               return row;
             },

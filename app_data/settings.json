@@ -1,4 +1,6 @@
  {
+    "serverHost": "localhost",
+    "serverPort": 8080,
     "partialDownloadFileExtension": ".odm",
     "downloadDir": "~/Downloads/OpenDownloadManager",
     "maxSimultaneousDownloads": 4,
