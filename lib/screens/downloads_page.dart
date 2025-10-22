@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:open_download_manager/screens/settings_page.dart';
 import 'package:open_download_manager/services/config.dart';
+import 'package:open_download_manager/services/database_helper.dart';
 import 'package:open_download_manager/services/download_engine.dart';
 import 'package:open_download_manager/services/download_service.dart';
 import 'package:open_download_manager/widgets/add_download_dialog.dart';
@@ -178,16 +180,13 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
               children: [
                 // Toolbar buttons
                 _buildToolbarButton(Icons.add, 'Add New Download', () async {
-                  final result = await showDialog<Map<String, String>>(
+                  await showDialog<Map<String, String>>(
                     context: context,
                     builder: (context) => AddDownloadDialog(
                       onRefreshDownloadList: refreshDownloadList,
                     ),
                   );
-
-                  if (result != null) {
-                    _addNewDownload(result['url']!, result['filename']!);
-                  }
+                  // Dialog handles everything internally now
                 }),
                 const SizedBox(width: 8),
                 _buildToolbarButton(
@@ -220,11 +219,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
                   Icons.delete,
                   'Delete selected downloads',
                   () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Delete selected downloads'),
-                      ),
-                    );
+                    _showDeleteConfirmationDialog();
                   },
                 ),
                 const SizedBox(width: 8),
@@ -403,45 +398,6 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
     );
   }
 
-  void _addNewDownload(String url, String filename) async {
-    final newDownload = Download(
-      partialFilePath: url,
-      filename: filename,
-      fileSize: 0,
-      url: url,
-      speed: 0,
-      dateAdded: DateTime.now(),
-      lastAttempt: DateTime.now(),
-      status: DownloadStatus.downloading,
-      progress: 0.0,
-    );
-
-    setState(() {
-      _downloads.add(newDownload);
-    });
-
-    // Save to file
-    // await _saveDownloads();
-
-    // Start the download using DownloadService
-    try {
-      // await DownloadService.startDownload(newDownload);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Started download: $filename'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to start download: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
   void _resumeSelectedDownloads() async {
     final selectedDownloads = _downloads.where((d) => d.isSelected).toList();
 
@@ -594,6 +550,127 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
           ),
         );
       }
+    }
+  }
+
+  void _showDeleteConfirmationDialog() async {
+    final selectedDownloads = _downloads.where((d) => d.isSelected).toList();
+
+    if (selectedDownloads.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No downloads selected')),
+      );
+      return;
+    }
+
+    bool deleteFiles = false;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Row(
+            children: [
+              const Icon(Icons.warning, color: Colors.orange),
+              const SizedBox(width: 8),
+              Text('Delete ${selectedDownloads.length} download${selectedDownloads.length > 1 ? 's' : ''}?'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'This action cannot be undone.',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 16),
+              CheckboxListTile(
+                value: deleteFiles,
+                onChanged: (value) {
+                  setDialogState(() {
+                    deleteFiles = value ?? false;
+                  });
+                },
+                title: const Text('Also delete files from disk'),
+                subtitle: const Text('Remove the .odm partial files permanently'),
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed == true) {
+      _deleteSelectedDownloads(deleteFiles);
+    }
+  }
+
+  void _deleteSelectedDownloads(bool deleteFiles) async {
+    final selectedDownloads = _downloads.where((d) => d.isSelected).toList();
+
+    if (selectedDownloads.isEmpty) return;
+
+    int successCount = 0;
+    int failCount = 0;
+
+    for (final download in selectedDownloads) {
+      try {
+        // Remove from database
+        if (download.partialFilePath != null) {
+          await DatabaseHelper.deleteDownload(download.partialFilePath!);
+        }
+
+        // Delete file from disk if requested
+        if (deleteFiles && download.partialFilePath != null) {
+          final file = File(download.partialFilePath!);
+          if (await file.exists()) {
+            await file.delete();
+          }
+        }
+
+        // Remove from UI list
+        setState(() {
+          _downloads.removeWhere(
+            (d) => d.partialFilePath == download.partialFilePath,
+          );
+        });
+
+        successCount++;
+      } catch (e) {
+        failCount++;
+        debugPrint('Failed to delete ${download.filename}: $e');
+      }
+    }
+
+    // Show result message
+    if (mounted) {
+      final message = successCount > 0
+          ? 'Deleted $successCount download${successCount > 1 ? 's' : ''}${failCount > 0 ? ' ($failCount failed)' : ''}'
+          : 'Failed to delete downloads';
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: failCount > 0 ? Colors.orange : Colors.green,
+        ),
+      );
     }
   }
 }

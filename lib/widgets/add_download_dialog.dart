@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:open_download_manager/models/partial_download_file.dart';
 import 'package:open_download_manager/services/database_helper.dart';
 import 'package:open_download_manager/services/download_service.dart';
 
@@ -274,20 +275,68 @@ class _AddDownloadDialogState extends State<AddDownloadDialog> {
                 ),
                 const SizedBox(width: 12),
                 ElevatedButton(
-                  onPressed: () {
-                    DatabaseHelper.upsertDownload(
-                      partialFilePath: _urlController.text.trim(),
-                      status: "paused",
-                    );
-                    DownloadService.loadDownloads();
-                    widget.onRefreshDownloadList();
-                    Navigator.of(context).pop(
-                      //   {
-                      //   'url': _urlController.text.trim(),
-                      //   'filename': _filenameController.text.trim(),
-                      // }
-                    );
-                  },
+                  onPressed: !_isValidUrl || _filenameController.text.trim().isEmpty
+                      ? null
+                      : () async {
+                          // Show loading indicator
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (context) => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+
+                          try {
+                            final url = _urlController.text.trim();
+                            final filename = _filenameController.text.trim();
+
+                            // Create the partial download file
+                            final partialFile = await PartialDownloadFile.create(
+                              url: url,
+                              downloadFilename: filename,
+                            );
+
+                            // Add to database
+                            await DatabaseHelper.upsertDownload(
+                              partialFilePath: partialFile.filePath,
+                              status: "paused",
+                            );
+
+                            // Reload downloads list
+                            await DownloadService.loadDownloads();
+                            await widget.onRefreshDownloadList();
+
+                            // Close loading dialog
+                            if (mounted) Navigator.of(context).pop();
+
+                            // Close the add download dialog
+                            if (mounted) Navigator.of(context).pop();
+
+                            // Show success message
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Download added: $filename'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            // Close loading dialog
+                            if (mounted) Navigator.of(context).pop();
+
+                            // Show error message
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed to create download: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,
