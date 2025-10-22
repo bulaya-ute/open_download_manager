@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_download_manager/screens/settings_page.dart';
 import 'package:open_download_manager/services/config.dart';
+import 'package:open_download_manager/services/download_engine.dart';
 import 'package:open_download_manager/services/download_service.dart';
 import 'package:open_download_manager/services/gateway.dart';
 import 'package:open_download_manager/widgets/add_download_dialog.dart';
@@ -36,7 +37,10 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
   Future<void> _initializeData() async {
     // Initilize modules
     Config.init();
-    Gateway.init();
+        DownloadEngine.init();
+
+    // Gateway.init();
+    // DownloadManager
 
     List<String> errors = [];
 

@@ -70,7 +70,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
             itemCount: widget.downloads.length,
             itemBuilder: (context, index) {
               final download = widget.downloads[index];
-              final row = buildDownloadRow(download);
+              final row = buildDownloadRow(download, widget.onRefreshDownloadList);
               return row;
             },
           ),
@@ -79,7 +79,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
     );
   }
 
-  Widget buildDownloadRow(Download download) {
+  Widget buildDownloadRow(Download download, final Function() onRefreshDownloadList) {
         // print("here2");
 
 
@@ -101,6 +101,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
               onChanged: (value) {
                 // widget.onToggleSelection(download);
                 download.isSelected = value!;
+                onRefreshDownloadList();
               },
             ),
             // Filename
@@ -218,104 +219,8 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
       ),
     );
   }
-
-  Widget _buildDownloadRow(Download download) {
-    print("here");
-    return GestureDetector(
-      onSecondaryTapDown: (details) {
-        _showContextMenu(details.globalPosition, download);
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: Colors.grey[200]!),
-          ),
-        ),
-        child: Row(
-          children: [
-            // Checkbox
-            Checkbox(
-              value: download.isSelected,
-              onChanged: (value) {
-                // widget.onToggleSelection(download);
-                download.isSelected = value!;
-              },
-            ),
-            // Filename
-            Expanded(
-              flex: 3,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                child: Text(
-                  download.filename,
-                  style: const TextStyle(fontSize: 14),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
-            // Status
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                child: _buildStatusColumn(download),
-              ),
-            ),
-            // Size
-            Expanded(
-              flex: 1,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                child: Text(
-                  "${download.fileSize}",
-                  style: const TextStyle(fontSize: 14),
-                ),
-              ),
-            ),
-            // URL
-            Expanded(
-              flex: 3,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                child: Text(
-                  download.url,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.blue[600],
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
-            // Speed
-            Expanded(
-              flex: 1,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                child: Text(
-                  "${download.speed}",
-                  style: const TextStyle(fontSize: 14),
-                ),
-              ),
-            ),
-            // Date Added
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                child: Text(
-                  "${download.dateAdded}",
-                  style: const TextStyle(fontSize: 14),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _getStatusIcon(DownloadStatus status) {
+  
+  Widget getStatusIcon(DownloadStatus status) {
     switch (status) {
       case DownloadStatus.completed:
         return const Icon(
@@ -352,7 +257,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
 
   Widget _buildStatusColumn(Download download) {
     String statusText = '';
-    Widget statusIcon = _getStatusIcon(download.status);
+    Widget statusIcon = getStatusIcon(download.status);
     String progress = (download.progress == null) ? "Unknown" : "${(download.progress! * 100).toInt()}%";
     
     switch (download.status) {

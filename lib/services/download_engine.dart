@@ -1,26 +1,40 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../models/partial_download_file.dart';
 
-/// Manages multiple active downloads
-class DownloadManager {
+/// Manages multiple active downloads (Singleton)
+class DownloadEngine {
+  // Private constructor
+  DownloadEngine._();
+
   /// Map of file paths to active Download instances
-  final Map<String, Download> _activeDownloads = {};
+  static final Map<String, ActiveDownload> _activeDownloads = {};
+
+  /// Initialize the download engine
+  static void init() {
+    // Initialization logic if needed in the future
+    print('DownloadEngine initialized');
+  }
 
   /// Get all active downloads
-  Map<String, Download> get activeDownloads => Map.unmodifiable(_activeDownloads);
+  static Map<String, ActiveDownload> get activeDownloads =>
+      Map.unmodifiable(_activeDownloads);
 
   /// Add a download to the manager
-  /// 
+  ///
   /// [partialFilePath] - Path to the partial download file
   /// [start] - If true, starts the download immediately
-  Future<void> addDownload(String partialFilePath, {bool start = true}) async {
+  static Future<void> addDownload(
+    String partialFilePath, {
+    bool start = true,
+  }) async {
     final resolvedPath = File(partialFilePath).absolute.path;
 
     if (!_activeDownloads.containsKey(resolvedPath)) {
-      final download = Download(resolvedPath);
+      final download = ActiveDownload(resolvedPath);
       _activeDownloads[resolvedPath] = download;
     }
 
@@ -30,7 +44,7 @@ class DownloadManager {
   }
 
   /// Create a new download and add it to active downloads
-  Future<void> downloadFile({
+  static Future<void> downloadFile({
     required String url,
     String? downloadFilename,
     String? website,
@@ -52,33 +66,37 @@ class DownloadManager {
   }
 
   /// Remove a download from active downloads
-  void removeDownload(String partialFilePath) {
+  static void removeDownload(String partialFilePath) {
     final resolvedPath = File(partialFilePath).absolute.path;
     _activeDownloads.remove(resolvedPath);
   }
 
   /// Get status of all active downloads
-  Map<String, Map<String, dynamic>> getStatus() {
+  static Map<String, Map<String, dynamic>> getStatus() {
     return _activeDownloads.map(
       (path, download) => MapEntry(path, download.getStatus()),
     );
   }
 
   /// Pause all active downloads
-  Future<void> pauseAll() async {
+  static Future<void> pauseAll() async {
     final futures = _activeDownloads.values.map((d) => d.pause());
     await Future.wait(futures);
   }
 
   /// Resume all paused downloads
-  Future<void> resumeAll() async {
+  static Future<void> resumeAll() async {
     final futures = _activeDownloads.values.map((d) => d.resume());
     await Future.wait(futures);
+  }
+
+  static void print(String message) {
+    debugPrint("[DL ENGINE] $message");
   }
 }
 
 /// Represents a single download with pause/resume capabilities
-class Download {
+class ActiveDownload {
   /// Path to the partial download file
   final String partialFilePath;
 
@@ -112,7 +130,7 @@ class Download {
   /// Stream subscription for download
   StreamSubscription? _subscription;
 
-  Download(
+  ActiveDownload(
     this.partialFilePath, {
     this.chunkSize = 8192,
     this.onProgress,
@@ -128,7 +146,7 @@ class Download {
   }
 
   /// Get current download speed with optional unit conversion
-  /// 
+  ///
   /// [unit] - The unit to convert to: 'B', 'KB', 'MB', 'GB', or null for auto
   /// [formatted] - If true, returns a formatted string like "1.5 MB/s"
   String getDownloadSpeed({String? unit, bool formatted = false}) {
@@ -187,30 +205,34 @@ class Download {
     if (!isDownloading) return;
 
     _stopFlag = true;
-    
+
     // Cancel the subscription and client
     await _subscription?.cancel();
     _client?.close();
-    
+
     print('Download paused: $partialFilePath');
   }
 
   /// Main download function that runs the download process
   Future<void> _downloadThreadFunction({bool resume = true}) async {
     await _loadPartialFile();
-    
-    print('Starting download: ${_partialFile.header.downloadFilename}, '
-        'Size: ${_partialFile.header.fileSize ?? "Unknown"} bytes');
+
+    print(
+      'Starting download: ${_partialFile.header.downloadFilename}, '
+      'Size: ${_partialFile.header.fileSize ?? "Unknown"} bytes',
+    );
 
     String? errorMsg;
 
     try {
       // Calculate resume position
       final startOffset = _partialFile.header.downloadedBytes;
-      
+
       // Set up headers for resume
       final headers = <String, String>{};
-      if (startOffset > 0 && resume && _partialFile.header.supportsResume == true) {
+      if (startOffset > 0 &&
+          resume &&
+          _partialFile.header.supportsResume == true) {
         headers['Range'] = 'bytes=$startOffset-';
       }
 
@@ -254,9 +276,9 @@ class Download {
             await _writeChunk(Uint8List.fromList(buffer));
             speedTracker.addBytes(buffer.length);
             _downloadSpeed = speedTracker.getSpeed();
-            
+
             onProgress?.call(_partialFile.header.downloadedBytes);
-            
+
             buffer.clear();
           }
         },
@@ -270,8 +292,10 @@ class Download {
 
           // Download complete
           print('Download complete: ${_partialFile.header.downloadFilename}');
-          await _partialFile.extractPayload(removePayloadFromPartialFile: false);
-          
+          await _partialFile.extractPayload(
+            removePayloadFromPartialFile: false,
+          );
+
           isDownloading = false;
           onComplete?.call();
         },
@@ -281,25 +305,30 @@ class Download {
         },
         cancelOnError: true,
       );
-
     } on HttpException catch (e) {
       final statusCode = int.tryParse(e.message.replaceAll('HTTP ', ''));
-      
+
       if (statusCode == 403) {
-        errorMsg = 'Access forbidden (403). The URL may have expired or requires authentication.';
+        errorMsg =
+            'Access forbidden (403). The URL may have expired or requires authentication.';
       } else if (statusCode == 404) {
-        errorMsg = 'File not found (404). The URL may be invalid or the file has been moved.';
+        errorMsg =
+            'File not found (404). The URL may be invalid or the file has been moved.';
       } else if (statusCode == 416) {
-        errorMsg = 'Range not satisfiable (416). The file may have changed or resume position is invalid.';
+        errorMsg =
+            'Range not satisfiable (416). The file may have changed or resume position is invalid.';
       } else if (statusCode == 429) {
-        errorMsg = 'Too many requests (429). Server is rate limiting, try again later.';
+        errorMsg =
+            'Too many requests (429). Server is rate limiting, try again later.';
       } else if (statusCode != null && statusCode >= 500) {
-        errorMsg = 'Server error ($statusCode). The server is experiencing issues.';
+        errorMsg =
+            'Server error ($statusCode). The server is experiencing issues.';
       } else {
         errorMsg = 'HTTP error: $e';
       }
     } on SocketException catch (_) {
-      errorMsg = 'Connection failed. Check your internet connection or the server may be down.';
+      errorMsg =
+          'Connection failed. Check your internet connection or the server may be down.';
     } on TimeoutException catch (_) {
       errorMsg = 'Request timed out. The server is taking too long to respond.';
     } on FileSystemException catch (e) {
@@ -312,12 +341,12 @@ class Download {
       errorMsg = 'Unexpected error: $e';
     } finally {
       isDownloading = false;
-      
+
       if (errorMsg != null) {
         print('Error downloading "$partialFilePath": $errorMsg');
         onError?.call(errorMsg!);
       }
-      
+
       _client?.close();
       await _subscription?.cancel();
     }
@@ -332,10 +361,10 @@ class Download {
   Map<String, dynamic> getStatus() {
     final downloadedBytes = _partialFile.header.downloadedBytes;
     final totalBytes = _partialFile.header.fileSize;
-    
+
     double? percentage;
     String progressStr;
-    
+
     if (totalBytes != null && totalBytes > 0) {
       percentage = downloadedBytes / totalBytes;
       progressStr = '${(percentage * 100).toStringAsFixed(2)}%';
@@ -375,11 +404,15 @@ class _SpeedTracker {
 
   double getSpeed() {
     _cleanOldSamples();
-    
+
     if (_samples.isEmpty) return 0.0;
-    
-    final totalBytes = _samples.fold<int>(0, (sum, sample) => sum + sample.bytes);
-    return totalBytes.toDouble(); // Already bytes per second since window is 1 second
+
+    final totalBytes = _samples.fold<int>(
+      0,
+      (sum, sample) => sum + sample.bytes,
+    );
+    return totalBytes
+        .toDouble(); // Already bytes per second since window is 1 second
   }
 }
 
