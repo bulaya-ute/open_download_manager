@@ -1,9 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:open_download_manager/screens/settings_page.dart';
 import 'package:open_download_manager/services/config.dart';
 import 'package:open_download_manager/services/download_engine.dart';
 import 'package:open_download_manager/services/download_service.dart';
-import 'package:open_download_manager/services/gateway.dart';
 import 'package:open_download_manager/widgets/add_download_dialog.dart';
 import 'package:open_download_manager/widgets/download_list_widget.dart';
 
@@ -20,11 +20,45 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
   final TextEditingController _searchController = TextEditingController();
   bool _isLoading = true;
   List<Download> _downloads = DownloadService.downloads;
+  Timer? _speedUpdateTimer;
 
   @override
   void initState() {
     super.initState();
     _initializeData();
+    _startSpeedUpdateTimer();
+  }
+
+  @override
+  void dispose() {
+    _speedUpdateTimer?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  /// Start a timer to periodically update download speeds from the engine
+  void _startSpeedUpdateTimer() {
+    _speedUpdateTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      // Get status from download engine
+      final engineStatus = DownloadEngine.getStatus();
+      
+      if (engineStatus.isEmpty) return;
+
+      setState(() {
+        for (var download in _downloads) {
+          if (download.partialFilePath != null &&
+              engineStatus.containsKey(download.partialFilePath)) {
+            final status = engineStatus[download.partialFilePath!];
+            
+            // Update speed if available (formatted string like "1.5 MB/s")
+            if (status != null && status['download_speed'] != null) {
+              // Speed is already formatted by the engine, just store for display
+              // The actual numeric speed calculation is handled by the engine
+            }
+          }
+        }
+      });
+    });
   }
 
   Future<void> refreshDownloadList() async {
@@ -42,12 +76,9 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
     // Gateway.init();
     // DownloadManager
 
-    List<String> errors = [];
-
     // // Check if the daemon is running
     // if (await Gateway.isServerRunnning) {
     //   debugPrint("Daemon not running, or running on unknown port");
-    //   errors.add("Daemon not running, or running on unknown port");
     // }
 
     // Load downloads list
@@ -422,8 +453,13 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
     }
 
     for (final download in selectedDownloads) {
+      // Skip completed downloads
+      if (download.status == DownloadStatus.completed) {
+        continue;
+      }
+
       try {
-        // await DownloadService.resumeDownload(download);
+        // Update status to downloading in UI
         setState(() {
           final index = _downloads.indexWhere(
             (d) => d.partialFilePath == download.partialFilePath,
@@ -434,6 +470,80 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
             );
           }
         });
+
+        // Add to download engine with UI update callbacks
+        await DownloadEngine.addDownload(
+          download.partialFilePath!,
+          onProgress: (downloadedBytes) {
+            // Update progress in UI
+            setState(() {
+              final index = _downloads.indexWhere(
+                (d) => d.partialFilePath == download.partialFilePath,
+              );
+              if (index != -1) {
+                final totalBytes = _downloads[index].fileSize;
+                if (totalBytes != null && totalBytes > 0) {
+                  _downloads[index].progress = downloadedBytes / totalBytes;
+                }
+              }
+            });
+          },
+          onComplete: () {
+            // Update status to completed in UI
+            setState(() {
+              final index = _downloads.indexWhere(
+                (d) => d.partialFilePath == download.partialFilePath,
+              );
+              if (index != -1) {
+                _downloads[index] = _downloads[index].copyWith(
+                  status: DownloadStatus.completed,
+                );
+                _downloads[index].progress = 1.0;
+              }
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Download completed: ${download.filename}'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          },
+          onError: (errorMessage) {
+            // Update status to error in UI
+            setState(() {
+              final index = _downloads.indexWhere(
+                (d) => d.partialFilePath == download.partialFilePath,
+              );
+              if (index != -1) {
+                _downloads[index] = _downloads[index].copyWith(
+                  status: DownloadStatus.error,
+                );
+                _downloads[index].errorMessage = errorMessage;
+              }
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Download error: ${download.filename}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          },
+          onPause: () {
+            // Update status to paused in UI
+            setState(() {
+              final index = _downloads.indexWhere(
+                (d) => d.partialFilePath == download.partialFilePath,
+              );
+              if (index != -1) {
+                _downloads[index] = _downloads[index].copyWith(
+                  status: DownloadStatus.paused,
+                );
+              }
+            });
+          },
+        );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -443,8 +553,6 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
         );
       }
     }
-
-    // await _saveDownloads();
   }
 
   void _pauseSelectedDownloads() async {
@@ -458,8 +566,16 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
     }
 
     for (final download in selectedDownloads) {
+      // Skip completed downloads
+      if (download.status == DownloadStatus.completed) {
+        continue;
+      }
+
       try {
-        // DownloadService.pauseDownload(download.id);
+        // Pause the download in the engine
+        await DownloadEngine.pauseDownload(download.partialFilePath!);
+
+        // Update status to paused in UI
         setState(() {
           final index = _downloads.indexWhere(
             (d) => d.partialFilePath == download.partialFilePath,
@@ -479,7 +595,5 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
         );
       }
     }
-
-    // await _saveDownloads();
   }
 }
