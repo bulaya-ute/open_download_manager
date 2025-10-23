@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/download_item.dart';
 import '../models/download_status.dart';
+import 'download_details_dialog.dart';
 
 class DownloadListWidget extends StatefulWidget {
   final List<DownloadItem> downloads;
@@ -89,6 +90,9 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
     return GestureDetector(
       onSecondaryTapDown: (details) {
         _showContextMenu(details.globalPosition, download);
+      },
+      onDoubleTap: () {
+        _showDownloadDetails(download);
       },
       child: Container(
         decoration: BoxDecoration(
@@ -524,5 +528,12 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
           SnackBar(content: Text('$action action for ${download.filename}')),
         );
     }
+  }
+
+  void _showDownloadDetails(DownloadItem download) {
+    showDialog(
+      context: context,
+      builder: (context) => DownloadDetailsDialog(download: download),
+    );
   }
 }
