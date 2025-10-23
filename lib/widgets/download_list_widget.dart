@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:open_download_manager/services/download_service.dart';
-// import '../models/download_item.dart';
+import '../models/download_item.dart';
+import '../models/download_status.dart';
 
 class DownloadListWidget extends StatefulWidget {
-  final List<Download> downloads;
+  final List<DownloadItem> downloads;
   final String currentTab;
-  final Function(Download) onToggleSelection;
+  final Function(DownloadItem) onToggleSelection;
   final Function() onSelectAll;
   final Function() onDeselectAll;
   final Future<void> Function() onRefreshDownloadList;
@@ -79,7 +79,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
     );
   }
 
-  Widget buildDownloadRow(Download download, final Function() onRefreshDownloadList) {
+  Widget buildDownloadRow(DownloadItem download, final Function() onRefreshDownloadList) {
         // print("here2");
 
 
@@ -255,7 +255,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
     }
   }
 
-  Widget _buildStatusColumn(Download download) {
+  Widget _buildStatusColumn(DownloadItem download) {
     String statusText = '';
     Widget statusIcon = getStatusIcon(download.status);
     String progress = (download.progress == null) ? "Unknown" : "${(download.progress! * 100).toInt()}%";
@@ -293,7 +293,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
     );
   }
 
-  void _showContextMenu(Offset position, Download download) {
+  void _showContextMenu(Offset position, DownloadItem download) {
     final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
     
     showMenu<String>(
@@ -442,7 +442,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
     });
   }
 
-  void _handleContextMenuAction(String action, Download download) {
+  void _handleContextMenuAction(String action, DownloadItem download) {
     switch (action) {
       case 'refresh_link':
         ScaffoldMessenger.of(context).showSnackBar(

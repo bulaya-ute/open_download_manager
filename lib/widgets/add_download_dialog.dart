@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:open_download_manager/models/partial_download_file.dart';
-import 'package:open_download_manager/services/database_helper.dart';
-import 'package:open_download_manager/services/download_service.dart';
+import 'package:open_download_manager/utils/database_helper.dart';
+import 'package:open_download_manager/utils/download_service.dart';
 
 enum FilenameStatus { loading, success, error, none }
 

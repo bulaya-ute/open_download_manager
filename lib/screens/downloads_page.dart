@@ -2,12 +2,15 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:open_download_manager/screens/settings_page.dart';
-import 'package:open_download_manager/services/config.dart';
-import 'package:open_download_manager/services/database_helper.dart';
-import 'package:open_download_manager/services/download_engine.dart';
-import 'package:open_download_manager/services/download_service.dart';
+import 'package:open_download_manager/utils/config.dart';
+import 'package:open_download_manager/utils/database_helper.dart';
+import 'package:open_download_manager/utils/download_engine.dart';
+import 'package:open_download_manager/utils/download_service.dart';
 import 'package:open_download_manager/widgets/add_download_dialog.dart';
 import 'package:open_download_manager/widgets/download_list_widget.dart';
+
+import '../models/download_item.dart';
+import '../models/download_status.dart';
 
 class DownloadManagerHomePage extends StatefulWidget {
   const DownloadManagerHomePage({super.key});
@@ -21,7 +24,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
   String _currentTab = 'all';
   final TextEditingController _searchController = TextEditingController();
   bool _isLoading = true;
-  List<Download> _downloads = DownloadService.downloads;
+  List<DownloadItem> _downloads = DownloadService.downloadsList;
   Timer? _speedUpdateTimer;
 
   @override
@@ -66,7 +69,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
   Future<void> refreshDownloadList() async {
     debugPrint("Refreshing list...");
     setState(() {
-      _downloads = DownloadService.downloads;
+      _downloads = DownloadService.downloadsList;
     });
   }
 
@@ -87,13 +90,13 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
     await DownloadService.loadDownloads(skipMissingFiles: false);
 
     setState(() {
-      _downloads = DownloadService.downloads;
+      _downloads = DownloadService.downloadsList;
       _isLoading = false;
     });
   }
 
-  List<Download> get _filteredDownloads {
-    List<Download> filtered = _downloads;
+  List<DownloadItem> get _filteredDownloads {
+    List<DownloadItem> filtered = _downloads;
 
     // Filter by tab
     switch (_currentTab) {
@@ -302,7 +305,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
                 downloads: _filteredDownloads,
                 currentTab: _currentTab,
                 onRefreshDownloadList: refreshDownloadList,
-                onToggleSelection: (download) {
+                onToggleSelection: (DownloadItem download) {
                   setState(() {
                     download.isSelected = !download.isSelected;
                   });
@@ -415,53 +418,39 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
       }
 
       try {
-        // Update status to downloading in UI
-        setState(() {
           final index = _downloads.indexWhere(
             (d) => d.partialFilePath == download.partialFilePath,
           );
-          if (index != -1) {
-            _downloads[index] = download.copyWith(
-              status: DownloadStatus.downloading,
-            );
-          }
+
+        // Update status to downloading in UI
+        setState(() {
+            download.status = DownloadStatus.downloading;
         });
 
         // Add to download engine with UI update callbacks
         await DownloadEngine.addDownload(
-          download.partialFilePath!,
+          download.partialFileObject!,
           updateUi: () {
             setState(() {
               
             });
           },
           onProgress: (downloadedBytes) {
-            // print("Added bytes: $downloadedBytes");
+            print("Added bytes: $downloadedBytes");
             // Update progress in UI
             setState(() {
-              final index = _downloads.indexWhere(
-                (d) => d.partialFilePath == download.partialFilePath,
-              );
-              if (index != -1) {
-                final totalBytes = _downloads[index].fileSize;
+              // download.progress = download.partialFileObject!.header.
+                final int? totalBytes = download.fileSize;
                 if (totalBytes != null && totalBytes > 0) {
-                  _downloads[index].progress = downloadedBytes / totalBytes;
+                  download.progress = downloadedBytes / totalBytes;
                 }
-              }
             });
           },
           onComplete: () {
             // Update status to completed in UI
             setState(() {
-              final index = _downloads.indexWhere(
-                (d) => d.partialFilePath == download.partialFilePath,
-              );
-              if (index != -1) {
-                _downloads[index] = _downloads[index].copyWith(
-                  status: DownloadStatus.completed,
-                );
-                _downloads[index].progress = 1.0;
-              }
+              download.progress = 1.0;
+              download.status = DownloadStatus.completed;
             });
 
             ScaffoldMessenger.of(context).showSnackBar(

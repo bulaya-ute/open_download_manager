@@ -42,6 +42,21 @@ Open Download Manager is a free and open-source download manager built with Flut
 4. Monitor progress in the list below, where you can pause or resume downloads.
 5. Files are saved to the app's documents directory (accessible via platform-specific file explorers).
 
+## Pending Improvements
+
+This section tracks planned enhancements and optimizations for future releases:
+
+### Performance Optimizations
+- **Lazy-load PartialDownloadFile objects**: Currently, all `PartialDownloadFile` objects are loaded into memory when the app starts. For better performance with large download lists, implement on-demand loading where `PartialDownloadFile` objects are only loaded for:
+  - Active/downloading items
+  - Items visible in the viewport
+  - Items being interacted with by the user
+  
+  This will significantly reduce memory usage and improve startup time for users with hundreds or thousands of download history items.
+
+### Future Features
+- (Add more items here as needed)
+
 ## Contributing
 
 We welcome contributions! To contribute:

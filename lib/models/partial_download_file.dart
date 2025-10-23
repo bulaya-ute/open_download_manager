@@ -66,6 +66,36 @@ class PartialDownloadFile {
     }
   }
 
+  /// Update the header on disk without modifying the payload
+  /// 
+  /// Rewrites the first 128KB of the file with the current header data.
+  /// Useful for updating metadata like lastAttempt, completed, or downloadedBytes
+  /// without writing any payload data.
+  Future<void> updateHeaderOnDisk() async {
+    final file = File(filePath);
+
+    if (!await file.exists()) {
+      throw FileSystemException('Partial download file does not exist', filePath);
+    }
+
+    // Open file in read-write mode
+    final raf = await file.open(mode: FileMode.writeOnlyAppend);
+
+    try {
+      // Seek to the beginning
+      await raf.setPosition(0);
+
+      // Write the header
+      final headerBytes = header.toBytes(pad: true);
+      await raf.writeFrom(headerBytes);
+
+      // Flush to ensure data is written to disk
+      await raf.flush();
+    } finally {
+      await raf.close();
+    }
+  }
+
   /// Append data to the payload and update header metadata
   /// 
   /// Writes the data to the end of the current payload and updates
