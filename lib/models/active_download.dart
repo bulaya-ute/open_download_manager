@@ -265,6 +265,7 @@ class ActiveDownload {
 
   /// Write a chunk to the partial file
   Future<void> _writeChunk(Uint8List chunk) async {
+    // partialFileObject.downloadSpeed = getDownloadSpeed();
     await partialFileObject.appendToPayload(chunk);
   }
 

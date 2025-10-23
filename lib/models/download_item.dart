@@ -28,8 +28,6 @@ class DownloadItem {
 
   DownloadItem({
     required this.partialFilePath,
-    // required this.url,
-    // required this.filename,
     required this.status,
     // required this.lastAttempt,
     // required this.dateAdded,
@@ -93,5 +91,9 @@ class DownloadItem {
       return downloadedBytes / totalBytes;
     }
     return null;
+  }
+
+  String get speed {
+    return "${partialFileObject?.downloadSpeed}";
   }
 }

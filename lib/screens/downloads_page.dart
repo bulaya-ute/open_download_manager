@@ -444,10 +444,10 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
             setState(() {});
           },
           onProgress: (downloadedBytes) {
-            print("Added bytes: $downloadedBytes");
             // Update progress in UI
             setState(() {
               download.progress = download.getProgress();
+              // download.speed = download.partialFileObject?.downloadSpeed;
             });
           },
           onComplete: () {

@@ -148,6 +148,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
                 ),
               ),
             ),
+
             // URL
             Expanded(
               flex: 3,
@@ -163,6 +164,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
                 ),
               ),
             ),
+
             // Speed
             Expanded(
               flex: 1,
@@ -171,9 +173,10 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
                   horizontal: 8,
                   vertical: 12,
                 ),
-                child: Text("0 B/s", style: const TextStyle(fontSize: 14)),
+                child: Text(download.partialFileObject!.getFormattedDownloadSpeed(), style: const TextStyle(fontSize: 14)),
               ),
             ),
+
             // Date Added
             Expanded(
               flex: 2,
@@ -236,18 +239,34 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
     );
   }
 
-  Widget getStatusIcon(DownloadStatus status) {
+  Color getStatusColor(DownloadStatus status) {
     switch (status) {
       case DownloadStatus.completed:
-        return const Icon(Icons.check_circle, color: Colors.green, size: 20);
+        return Colors.green;
       case DownloadStatus.downloading:
-        return const Icon(Icons.download, color: Colors.blue, size: 20);
+        return Colors.blue;
       case DownloadStatus.error:
-        return const Icon(Icons.error, color: Colors.red, size: 20);
+        return Colors.red;
       case DownloadStatus.paused:
-        return const Icon(Icons.pause_circle, color: Colors.orange, size: 20);
+        return Colors.orange;
       case DownloadStatus.stopped:
-        return const Icon(Icons.pause_circle, color: Colors.orange, size: 20);
+        return Colors.orange;
+    }
+  }
+
+  Widget getStatusIcon(DownloadStatus status) {
+    final Color color = getStatusColor(status);
+    switch (status) {
+      case DownloadStatus.completed:
+        return Icon(Icons.check_circle, color: color, size: 20);
+      case DownloadStatus.downloading:
+        return Icon(Icons.download, color: color, size: 20);
+      case DownloadStatus.error:
+        return Icon(Icons.error, color: color, size: 20);
+      case DownloadStatus.paused:
+        return Icon(Icons.pause_circle, color: color, size: 20);
+      case DownloadStatus.stopped:
+        return Icon(Icons.pause_circle, color: color, size: 20);
     }
   }
 
@@ -286,7 +305,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
         Row(
           children: [
             statusIcon,
-            const SizedBox(width: 8,),
+            const SizedBox(width: 8),
             Text(
               statusText,
               style: const TextStyle(fontSize: 14),
@@ -294,15 +313,12 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
             ),
             const Spacer(),
             Text(progressString),
-
           ],
         ),
-        const SizedBox(height: 6,),
+        const SizedBox(height: 6),
         Row(
           children: [
-            Expanded(child: LinearProgressIndicator(
-              value: progressValue,
-            )),
+            Expanded(child: LinearProgressIndicator(value: progressValue, color: getStatusColor(download.status),)),
           ],
         ),
       ],

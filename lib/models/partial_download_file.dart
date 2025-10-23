@@ -58,6 +58,51 @@ class PartialDownloadFile {
     return _lastDownloadSpeed;
   }
 
+  String getFormattedDownloadSpeed({bool formatted = true, String? unit}) {
+    double speed = downloadSpeed;
+
+    // Auto-select appropriate unit
+    String selectedUnit;
+    if (unit == null) {
+      if (speed >= 1024 * 1024 * 1024) {
+        selectedUnit = 'GB';
+      } else if (speed >= 1024 * 1024) {
+        selectedUnit = 'MB';
+      } else if (speed >= 1024) {
+        selectedUnit = 'KB';
+      } else {
+        selectedUnit = 'B';
+      }
+    } else {
+      selectedUnit = unit.toUpperCase();
+    }
+
+    // Convert to selected unit
+    double convertedSpeed;
+    switch (selectedUnit) {
+      case 'GB':
+        convertedSpeed = speed / (1024 * 1024 * 1024);
+        break;
+      case 'MB':
+        convertedSpeed = speed / (1024 * 1024);
+        break;
+      case 'KB':
+        convertedSpeed = speed / 1024;
+        break;
+      case 'B':
+      default:
+        convertedSpeed = speed;
+        break;
+    }
+
+    if (formatted) {
+      return '${convertedSpeed.toStringAsFixed(2)} $selectedUnit/s';
+    } else {
+      return convertedSpeed.toString();
+    }
+
+  }
+
   /// Update download speed calculation
   void _updateSpeed(int bytesWritten, Duration timeTaken) {
     if (timeTaken.inMilliseconds > 0) {
@@ -65,6 +110,8 @@ class PartialDownloadFile {
       _lastSpeedCalculation = DateTime.now();
     }
   }
+
+  //
 
   /// Update the header on disk without modifying the payload
   /// 
