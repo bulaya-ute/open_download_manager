@@ -143,7 +143,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
                   vertical: 12,
                 ),
                 child: Text(
-                  "${download.fileSize}",
+                  download.partialFileObject!.getFormattedFileSize(),
                   style: const TextStyle(fontSize: 14),
                 ),
               ),
@@ -173,7 +173,12 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
                   horizontal: 8,
                   vertical: 12,
                 ),
-                child: Text(download.partialFileObject!.getFormattedDownloadSpeed(), style: const TextStyle(fontSize: 14)),
+                child: Text(
+                  download.status != DownloadStatus.downloading
+                      ? " "
+                      : download.partialFileObject!.getFormattedDownloadSpeed(),
+                  style: const TextStyle(fontSize: 14),
+                ),
               ),
             ),
 
@@ -318,7 +323,12 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
         const SizedBox(height: 6),
         Row(
           children: [
-            Expanded(child: LinearProgressIndicator(value: progressValue, color: getStatusColor(download.status),)),
+            Expanded(
+              child: LinearProgressIndicator(
+                value: progressValue,
+                color: getStatusColor(download.status),
+              ),
+            ),
           ],
         ),
       ],

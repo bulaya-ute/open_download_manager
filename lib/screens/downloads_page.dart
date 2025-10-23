@@ -79,14 +79,6 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
     Config.init();
     DownloadEngine.init();
 
-    // Gateway.init();
-    // DownloadManager
-
-    // // Check if the daemon is running
-    // if (await Gateway.isServerRunnning) {
-    //   debugPrint("Daemon not running, or running on unknown port");
-    // }
-
     // Load downloads list
     await DownloadService.loadDownloads(skipMissingFiles: false);
 
@@ -533,7 +525,8 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
 
       try {
         // Pause the download in the engine
-        await DownloadEngine.pauseDownload(download.partialFilePath!);
+        await DownloadEngine.pauseDownload(download.partialFilePath);
+        // download.speed = 0;
 
         // Update status to paused in UI
         setState(() {

@@ -58,6 +58,43 @@ class PartialDownloadFile {
     return _lastDownloadSpeed;
   }
 
+  String getFormattedFileSize() {
+    num size = header.fileSize ?? 0.0;
+
+    // Auto-select appropriate unit
+    String selectedUnit;
+      if (size >= 1024 * 1024 * 1024) {
+        selectedUnit = 'GB';
+      } else if (size >= 1024 * 1024) {
+        selectedUnit = 'MB';
+      } else if (size >= 1024) {
+        selectedUnit = 'KB';
+      } else {
+        selectedUnit = 'B';
+      }
+
+    // Convert to selected unit
+    double convertedSpeed;
+    switch (selectedUnit) {
+      case 'GB':
+        convertedSpeed = size / (1024 * 1024 * 1024);
+        break;
+      case 'MB':
+        convertedSpeed = size / (1024 * 1024);
+        break;
+      case 'KB':
+        convertedSpeed = size / 1024;
+        break;
+      case 'B':
+      default:
+        convertedSpeed = size / 1;
+        break;
+    }
+
+      return '${convertedSpeed.toStringAsFixed(2)} $selectedUnit';
+
+  }
+
   String getFormattedDownloadSpeed({bool formatted = true, String? unit}) {
     double speed = downloadSpeed;
 
