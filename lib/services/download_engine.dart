@@ -31,7 +31,8 @@ class DownloadEngine {
       Map.unmodifiable(_queuedDownloads);
 
   /// Get total number of downloads (active + queued)
-  static int get totalDownloads => _activeDownloads.length + _queuedDownloads.length;
+  static int get totalDownloads =>
+      _activeDownloads.length + _queuedDownloads.length;
 
   /// Add a download to the queue and automatically start if slots available
   ///
@@ -45,7 +46,8 @@ class DownloadEngine {
     void Function(int downloadedBytes)? onProgress,
     void Function()? onComplete,
     void Function(String error)? onError,
-    void Function()? onPause,
+    void Function()? onPause, 
+    void Function()? updateUi,
   }) async {
     final resolvedPath = File(partialFilePath).absolute.path;
 
@@ -59,6 +61,7 @@ class DownloadEngine {
     // Create the download with callbacks
     final download = ActiveDownload(
       resolvedPath,
+      updateUi: updateUi,
       onProgress: onProgress,
       onComplete: () {
         onComplete?.call();
@@ -109,7 +112,8 @@ class DownloadEngine {
     final maxDownloads = Config.maxSimultaneousDownloads ?? 4;
 
     // Start downloads while we have slots and queued items
-    while (_activeDownloads.length < maxDownloads && _queuedDownloads.isNotEmpty) {
+    while (_activeDownloads.length < maxDownloads &&
+        _queuedDownloads.isNotEmpty) {
       // Get the first queued download (FIFO)
       final entry = _queuedDownloads.entries.first;
       final path = entry.key;
@@ -119,7 +123,9 @@ class DownloadEngine {
       _queuedDownloads.remove(path);
       _activeDownloads[path] = download;
 
-      print('Starting download from queue: $path (${_activeDownloads.length}/$maxDownloads active)');
+      print(
+        'Starting download from queue: $path (${_activeDownloads.length}/$maxDownloads active)',
+      );
 
       // Start the download (don't await to allow parallel processing)
       download.resume();
@@ -181,18 +187,12 @@ class DownloadEngine {
 
     // Add active downloads
     _activeDownloads.forEach((path, download) {
-      status[path] = {
-        ...download.getStatus(),
-        'queue_status': 'downloading',
-      };
+      status[path] = {...download.getStatus(), 'queue_status': 'downloading'};
     });
 
     // Add queued downloads
     _queuedDownloads.forEach((path, download) {
-      status[path] = {
-        ...download.getStatus(),
-        'queue_status': 'queued',
-      };
+      status[path] = {...download.getStatus(), 'queue_status': 'queued'};
     });
 
     return status;
@@ -237,7 +237,7 @@ class ActiveDownload {
   final String partialFilePath;
 
   /// Loaded partial download file
-  late PartialDownloadFile _partialFile;
+  PartialDownloadFile? _partialFile;
 
   /// Current download speed in bytes/second
   double _downloadSpeed = 0.0;
@@ -263,6 +263,8 @@ class ActiveDownload {
   /// Pause callback (called when download is paused)
   final void Function()? onPause;
 
+  final void Function()? updateUi;
+
   /// HTTP client for downloads
   http.Client? _client;
 
@@ -275,7 +277,8 @@ class ActiveDownload {
     this.onProgress,
     this.onError,
     this.onComplete,
-    this.onPause,
+    this.onPause, 
+    this.updateUi,
   }) {
     _loadPartialFile();
   }
@@ -351,7 +354,7 @@ class ActiveDownload {
     _client?.close();
 
     print('Download paused: $partialFilePath');
-    
+
     // Notify that download was paused
     onPause?.call();
   }
@@ -359,96 +362,89 @@ class ActiveDownload {
   /// Main download function that runs the download process
   Future<void> _downloadThreadFunction({bool resume = true}) async {
     await _loadPartialFile();
+    
+    // Ensure partial file is loaded
+    if (_partialFile == null) {
+      onError?.call('Failed to load partial file');
+      return;
+    }
 
     print(
-      'Starting download: ${_partialFile.header.downloadFilename}, '
-      'Size: ${_partialFile.header.fileSize ?? "Unknown"} bytes',
+      'Starting download: ${_partialFile!.header.downloadFilename}, '
+      'Size: ${_partialFile!.header.fileSize ?? "Unknown"} bytes',
     );
+
+    // _partialFile.downloadSpeed =
 
     String? errorMsg;
 
     try {
       // Calculate resume position
-      final startOffset = _partialFile.header.downloadedBytes;
+      final startOffset = _partialFile!.header.downloadedBytes;
 
       // Set up headers for resume
       final headers = <String, String>{};
       if (startOffset > 0 &&
           resume &&
-          _partialFile.header.supportsResume == true) {
+          _partialFile!.header.supportsResume == true) {
         headers['Range'] = 'bytes=$startOffset-';
       }
 
       // Create HTTP client
       _client = http.Client();
-      final request = http.Request('GET', Uri.parse(_partialFile.header.url));
+      final request = http.Request('GET', Uri.parse(_partialFile!.header.url));
       headers.forEach((key, value) => request.headers[key] = value);
 
       final response = await _client!.send(request);
 
+print("Here1");
       if (response.statusCode != 200 && response.statusCode != 206) {
         throw HttpException(
           'HTTP ${response.statusCode}',
-          uri: Uri.parse(_partialFile.header.url),
+          uri: Uri.parse(_partialFile!.header.url),
         );
       }
+print("Here2");
 
       // Track download speed
       final speedTracker = _SpeedTracker();
       isDownloading = true;
       _stopFlag = false;
 
-      // Buffer for accumulating chunks
-      final buffer = <int>[];
+      print('Starting stream download...');
 
-      // Listen to response stream
-      _subscription = response.stream.listen(
-        (chunk) async {
-          if (_stopFlag) {
-            _subscription?.cancel();
-            _client?.close();
-            isDownloading = false;
-            _stopFlag = false;
-            return;
-          }
-
-          buffer.addAll(chunk);
-
-          // Write when buffer reaches chunk size
-          if (buffer.length >= chunkSize) {
-            await _writeChunk(Uint8List.fromList(buffer));
-            speedTracker.addBytes(buffer.length);
-            _downloadSpeed = speedTracker.getSpeed();
-
-            onProgress?.call(_partialFile.header.downloadedBytes);
-
-            buffer.clear();
-          }
-        },
-        onDone: () async {
-          // Write any remaining data
-          if (buffer.isNotEmpty) {
-            await _writeChunk(Uint8List.fromList(buffer));
-            speedTracker.addBytes(buffer.length);
-            buffer.clear();
-          }
-
-          // Download complete
-          print('Download complete: ${_partialFile.header.downloadFilename}');
-          await _partialFile.extractPayload(
-            removePayloadFromPartialFile: false,
-          );
-
+      // Use await for to iterate over the stream directly
+      await for (var chunk in response.stream) {
+        // Check if download should be stopped
+        if (_stopFlag) {
+          print('Download stopped by user');
           isDownloading = false;
-          onComplete?.call();
-        },
-        onError: (error) {
-          errorMsg = 'Stream error: $error';
-          isDownloading = false;
-          onError?.call(errorMsg!);
-        },
-        cancelOnError: true,
-      );
+          _stopFlag = false;
+          break;
+        }
+
+        // Write chunk to partial file
+        await _writeChunk(Uint8List.fromList(chunk));
+        
+        // Track speed and progress
+        speedTracker.addBytes(chunk.length);
+        _downloadSpeed = speedTracker.getSpeed();
+
+        // Call progress callback
+        onProgress?.call(_partialFile!.header.downloadedBytes);
+      }
+
+      // Check if download completed successfully (not stopped by user)
+      if (!_stopFlag && isDownloading) {
+        // Download complete
+        print('Download complete: ${_partialFile!.header.downloadFilename}');
+        await _partialFile!.extractPayload(
+          removePayloadFromPartialFile: false,
+        );
+
+        isDownloading = false;
+        onComplete?.call();
+      }
     } on HttpException catch (e) {
       final statusCode = int.tryParse(e.message.replaceAll('HTTP ', ''));
 
@@ -488,7 +484,7 @@ class ActiveDownload {
 
       if (errorMsg != null) {
         print('Error downloading "$partialFilePath": $errorMsg');
-        onError?.call(errorMsg!);
+        onError?.call(errorMsg);
       }
 
       _client?.close();
@@ -496,15 +492,34 @@ class ActiveDownload {
     }
   }
 
+  static void print(String message) {
+    debugPrint("[DOWNLOAD] $message");
+  }
+
   /// Write a chunk to the partial file
   Future<void> _writeChunk(Uint8List chunk) async {
-    await _partialFile.appendToPayload(chunk);
+    await _partialFile!.appendToPayload(chunk);
   }
 
   /// Get current download status
   Map<String, dynamic> getStatus() {
-    final downloadedBytes = _partialFile.header.downloadedBytes;
-    final totalBytes = _partialFile.header.fileSize;
+    // Return loading status if partial file not yet loaded
+    if (_partialFile == null) {
+      return {
+        'downloaded_bytes': 0,
+        'total_bytes': null,
+        'download_progress': 'Loading...',
+        'status': 'Initializing',
+        'download_percentage': null,
+        'download_speed': '0 B/s',
+        'supports_resume': 'Unknown',
+        'filename': 'Loading...',
+        'url': partialFilePath,
+      };
+    }
+
+    final downloadedBytes = _partialFile!.header.downloadedBytes;
+    final totalBytes = _partialFile!.header.fileSize;
 
     double? percentage;
     String progressStr;
@@ -524,9 +539,9 @@ class ActiveDownload {
       'status': isDownloading ? 'In progress' : 'Paused',
       'download_percentage': percentage,
       'download_speed': getDownloadSpeed(formatted: true),
-      'supports_resume': _partialFile.header.supportsResume ?? 'Unknown',
-      'filename': _partialFile.header.downloadFilename,
-      'url': _partialFile.header.url,
+      'supports_resume': _partialFile!.header.supportsResume ?? 'Unknown',
+      'filename': _partialFile!.header.downloadFilename,
+      'url': _partialFile!.header.url,
     };
   }
 }

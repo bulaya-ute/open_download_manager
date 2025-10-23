@@ -430,7 +430,13 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
         // Add to download engine with UI update callbacks
         await DownloadEngine.addDownload(
           download.partialFilePath!,
+          updateUi: () {
+            setState(() {
+              
+            });
+          },
           onProgress: (downloadedBytes) {
+            // print("Added bytes: $downloadedBytes");
             // Update progress in UI
             setState(() {
               final index = _downloads.indexWhere(
