@@ -48,11 +48,8 @@ class DownloadService {
         );
         
         // Get speed and errorMessage from database
-        final speed = record['speed'] as int?;
         final errorMessage = record['errorMessage'] as String?;
         
-        // TODO: Read actual metadata from partial file header
-        // For now, using placeholder values
         final download = DownloadItem(
           partialFilePath: partialFilePath,
           status: status,
