@@ -8,7 +8,7 @@ class DownloadListWidget extends StatefulWidget {
   final Function(DownloadItem) onToggleSelection;
   final Function() onSelectAll;
   final Function() onDeselectAll;
-  final Future<void> Function() onRefreshDownloadList;
+  final Function() onRefreshDownloadList;
 
   const DownloadListWidget({
     super.key,
@@ -82,7 +82,8 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
 
   Widget buildDownloadRow(DownloadItem download, final Function() onRefreshDownloadList) {
         // print("here2");
-
+    // if (download.partialFileObject == null)
+      // await download.loadPartialFile();
 
     return GestureDetector(
       onSecondaryTapDown: (details) {

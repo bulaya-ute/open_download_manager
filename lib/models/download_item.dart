@@ -20,6 +20,12 @@ class DownloadItem {
   String? errorMessage;
   PartialDownloadFile? _partialFileObject;
 
+  int? _fileSize;
+  // int _downloadedBytes;
+  // String _url;
+
+
+
   DownloadItem({
     required this.partialFilePath,
     // required this.url,
@@ -61,7 +67,8 @@ class DownloadItem {
   }
 
   int? get fileSize {
-    return partialFileObject?.header.fileSize;
+    if (partialFileObject != null) return partialFileObject!.header.fileSize;
+    return _fileSize;
   }
 
   int get downloadedBytes {

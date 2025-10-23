@@ -57,6 +57,7 @@ class DownloadService {
           partialFilePath: partialFilePath,
           status: status,
         );
+        await download.loadPartialFile();
         
         // Set error message if present
         if (errorMessage != null) {

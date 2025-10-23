@@ -305,7 +305,11 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
               child: DownloadListWidget(
                 downloads: _filteredDownloads,
                 currentTab: _currentTab,
-                onRefreshDownloadList: refreshDownloadList,
+                onRefreshDownloadList: () {
+                  setState(() {
+
+                  });
+                },
                 onToggleSelection: (DownloadItem download) {
                   setState(() {
                     download.isSelected = !download.isSelected;
