@@ -55,14 +55,7 @@ class DownloadService {
         // For now, using placeholder values
         final download = DownloadItem(
           partialFilePath: partialFilePath,
-          url: 'placeholder://url', // TODO: Read from partial file
-          filename: path.basename(partialFilePath).replaceAll('.odm', ''), // Placeholder
           status: status,
-          dateAdded: DateTime.now(), // TODO: Read from partial file
-          lastAttempt: DateTime.now(), // TODO: Read from partial file
-          fileSize: null, // TODO: Read from partial file
-          progress: 0.0, // TODO: Calculate from partial file
-          speed: speed,
         );
         
         // Set error message if present

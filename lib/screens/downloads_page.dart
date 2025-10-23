@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:open_download_manager/screens/settings_page.dart';
 import 'package:open_download_manager/utils/config.dart';
@@ -24,7 +25,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
   String _currentTab = 'all';
   final TextEditingController _searchController = TextEditingController();
   bool _isLoading = true;
-  List<DownloadItem> _downloads = DownloadService.downloadsList;
+  List<DownloadItem> _downloadList = DownloadService.downloadsList;
   Timer? _speedUpdateTimer;
 
   @override
@@ -46,15 +47,15 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
     _speedUpdateTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       // Get status from download engine
       final engineStatus = DownloadEngine.getStatus();
-      
+
       if (engineStatus.isEmpty) return;
 
       setState(() {
-        for (var download in _downloads) {
+        for (var download in _downloadList) {
           if (download.partialFilePath != null &&
               engineStatus.containsKey(download.partialFilePath)) {
             final status = engineStatus[download.partialFilePath!];
-            
+
             // Update speed if available (formatted string like "1.5 MB/s")
             if (status != null && status['download_speed'] != null) {
               // Speed is already formatted by the engine, just store for display
@@ -69,14 +70,14 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
   Future<void> refreshDownloadList() async {
     debugPrint("Refreshing list...");
     setState(() {
-      _downloads = DownloadService.downloadsList;
+      _downloadList = DownloadService.downloadsList;
     });
   }
 
   Future<void> _initializeData() async {
-    // Initilize modules
+    // Initialize modules
     Config.init();
-        DownloadEngine.init();
+    DownloadEngine.init();
 
     // Gateway.init();
     // DownloadManager
@@ -90,13 +91,13 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
     await DownloadService.loadDownloads(skipMissingFiles: false);
 
     setState(() {
-      _downloads = DownloadService.downloadsList;
+      _downloadList = DownloadService.downloadsList;
       _isLoading = false;
     });
   }
 
   List<DownloadItem> get _filteredDownloads {
-    List<DownloadItem> filtered = _downloads;
+    List<DownloadItem> filtered = _downloadList;
 
     // Filter by tab
     switch (_currentTab) {
@@ -141,13 +142,13 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
   int _getTabCount(String tab) {
     switch (tab) {
       case 'all':
-        return _downloads.length;
+        return _downloadList.length;
       case 'completed':
-        return _downloads
+        return _downloadList
             .where((item) => item.status == DownloadStatus.completed)
             .length;
       case 'incomplete':
-        return _downloads
+        return _downloadList
             .where(
               (item) =>
                   item.status == DownloadStatus.downloading ||
@@ -155,7 +156,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
             )
             .length;
       case 'error':
-        return _downloads
+        return _downloadList
             .where((item) => item.status == DownloadStatus.error)
             .length;
       default:
@@ -402,7 +403,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
   }
 
   void _resumeSelectedDownloads() async {
-    final selectedDownloads = _downloads.where((d) => d.isSelected).toList();
+    final selectedDownloads = _downloadList.where((d) => d.isSelected).toList();
 
     if (selectedDownloads.isEmpty) {
       ScaffoldMessenger.of(
@@ -418,32 +419,31 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
       }
 
       try {
-          final index = _downloads.indexWhere(
-            (d) => d.partialFilePath == download.partialFilePath,
-          );
+        // final index = _downloads.indexWhere(
+        //   (d) => d.partialFilePath == download.partialFilePath,
+        // );
 
         // Update status to downloading in UI
         setState(() {
-            download.status = DownloadStatus.downloading;
+          download.status = DownloadStatus.downloading;
         });
 
+        if (download.partialFileObject == null) {
+          await download.loadPartialFile();
+        }
+
+        // print("Partial: ${download.partialFileObject}");
         // Add to download engine with UI update callbacks
         await DownloadEngine.addDownload(
           download.partialFileObject!,
           updateUi: () {
-            setState(() {
-              
-            });
+            setState(() {});
           },
           onProgress: (downloadedBytes) {
             print("Added bytes: $downloadedBytes");
             // Update progress in UI
             setState(() {
-              // download.progress = download.partialFileObject!.header.
-                final int? totalBytes = download.fileSize;
-                if (totalBytes != null && totalBytes > 0) {
-                  download.progress = downloadedBytes / totalBytes;
-                }
+              download.progress = download.getProgress();
             });
           },
           onComplete: () {
@@ -463,15 +463,19 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
           onError: (errorMessage) {
             // Update status to error in UI
             setState(() {
-              final index = _downloads.indexWhere(
-                (d) => d.partialFilePath == download.partialFilePath,
-              );
-              if (index != -1) {
-                _downloads[index] = _downloads[index].copyWith(
-                  status: DownloadStatus.error,
-                );
-                _downloads[index].errorMessage = errorMessage;
-              }
+              // final index = _downloadList.indexWhere(
+              //   (d) => d.partialFilePath == download.partialFilePath,
+              // );
+              // if (index != -1) {
+              //   _downloadList[index] = _downloadList[index].copyWith(
+              //     status: DownloadStatus.error,
+              //   );
+              //   _downloadList[index].errorMessage = errorMessage;
+              // }
+              setState(() {
+                download.status = DownloadStatus.error;
+                download.errorMessage = errorMessage;
+              });
             });
 
             ScaffoldMessenger.of(context).showSnackBar(
@@ -484,14 +488,15 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
           onPause: () {
             // Update status to paused in UI
             setState(() {
-              final index = _downloads.indexWhere(
-                (d) => d.partialFilePath == download.partialFilePath,
-              );
-              if (index != -1) {
-                _downloads[index] = _downloads[index].copyWith(
-                  status: DownloadStatus.paused,
-                );
-              }
+              // final index = _downloadList.indexWhere(
+              //   (d) => d.partialFilePath == download.partialFilePath,
+              // );
+              // if (index != -1) {
+              //   _downloadList[index] = _downloadList[index].copyWith(
+              //     status: DownloadStatus.paused,
+              //   );
+              // }
+              download.status = DownloadStatus.paused;
             });
           },
         );
@@ -507,7 +512,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
   }
 
   void _pauseSelectedDownloads() async {
-    final selectedDownloads = _downloads.where((d) => d.isSelected).toList();
+    final selectedDownloads = _downloadList.where((d) => d.isSelected).toList();
 
     if (selectedDownloads.isEmpty) {
       ScaffoldMessenger.of(
@@ -528,14 +533,15 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
 
         // Update status to paused in UI
         setState(() {
-          final index = _downloads.indexWhere(
-            (d) => d.partialFilePath == download.partialFilePath,
-          );
-          if (index != -1) {
-            _downloads[index] = download.copyWith(
-              status: DownloadStatus.paused,
-            );
-          }
+          // final index = _downloadList.indexWhere(
+          //   (d) => d.partialFilePath == download.partialFilePath,
+          // );
+          // if (index != -1) {
+          //   _downloadList[index] = download.copyWith(
+          //     status: DownloadStatus.paused,
+          //   );
+          // }
+          download.status = DownloadStatus.paused;
         });
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -549,12 +555,12 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
   }
 
   void _showDeleteConfirmationDialog() async {
-    final selectedDownloads = _downloads.where((d) => d.isSelected).toList();
+    final selectedDownloads = _downloadList.where((d) => d.isSelected).toList();
 
     if (selectedDownloads.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No downloads selected')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No downloads selected')));
       return;
     }
 
@@ -568,7 +574,9 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
             children: [
               const Icon(Icons.warning, color: Colors.orange),
               const SizedBox(width: 8),
-              Text('Delete ${selectedDownloads.length} download${selectedDownloads.length > 1 ? 's' : ''}?'),
+              Text(
+                'Delete ${selectedDownloads.length} download${selectedDownloads.length > 1 ? 's' : ''}?',
+              ),
             ],
           ),
           content: Column(
@@ -588,7 +596,9 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
                   });
                 },
                 title: const Text('Also delete files from disk'),
-                subtitle: const Text('Remove the .odm partial files permanently'),
+                subtitle: const Text(
+                  'Remove the .odm partial files permanently',
+                ),
                 controlAffinity: ListTileControlAffinity.leading,
                 contentPadding: EdgeInsets.zero,
               ),
@@ -618,7 +628,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
   }
 
   void _deleteSelectedDownloads(bool deleteFiles) async {
-    final selectedDownloads = _downloads.where((d) => d.isSelected).toList();
+    final selectedDownloads = _downloadList.where((d) => d.isSelected).toList();
 
     if (selectedDownloads.isEmpty) return;
 
@@ -642,7 +652,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
 
         // Remove from UI list
         setState(() {
-          _downloads.removeWhere(
+          _downloadList.removeWhere(
             (d) => d.partialFilePath == download.partialFilePath,
           );
         });

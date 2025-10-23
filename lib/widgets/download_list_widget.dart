@@ -70,6 +70,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
             itemCount: widget.downloads.length,
             itemBuilder: (context, index) {
               final download = widget.downloads[index];
+              print("Partial: ${download.partialFileObject}");
               final row = buildDownloadRow(download, widget.onRefreshDownloadList);
               return row;
             },
@@ -156,7 +157,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                 child: Text(
-                  "${download.speed}",
+                  "0 B/s",
                   style: const TextStyle(fontSize: 14),
                 ),
               ),
