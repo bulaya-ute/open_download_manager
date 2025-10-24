@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
       title: 'Open Download Manager',
       theme: themeData["light"],
       darkTheme: themeData["dark"],
-      themeMode: ThemeMode.system, // Will be updated after config loads
+      themeMode: ThemeMode.light, // Will be updated after config loads
       home: const InitializationScreen(),
     );
   }

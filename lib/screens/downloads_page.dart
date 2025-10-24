@@ -233,7 +233,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
                       fillColor: Colors.grey[50],
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 12,
-                        vertical: 8,
+                        vertical: 4,
                       ),
                     ),
                     onChanged: (value) {
