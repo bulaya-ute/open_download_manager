@@ -1,4 +1,3 @@
-````markdown
 # Open Download Manager
 
 Open Download Manager is a free and open-source download manager built with Flutter, designed to work seamlessly across Android, Windows, iOS, and macOS. It provides a simple, user-friendly interface to manage file downloads with features like pause/resume, progress tracking, and cross-platform compatibility.
