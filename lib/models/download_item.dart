@@ -21,10 +21,6 @@ class DownloadItem {
   PartialDownloadFile? _partialFileObject;
 
   int? _fileSize;
-  // int _downloadedBytes;
-  // String _url;
-
-
 
   DownloadItem({
     required this.partialFilePath,

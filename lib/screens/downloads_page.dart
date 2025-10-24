@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:open_download_manager/screens/settings_page.dart';
-import 'package:open_download_manager/utils/config.dart';
 import 'package:open_download_manager/utils/database_helper.dart';
 import 'package:open_download_manager/utils/download_engine.dart';
 import 'package:open_download_manager/utils/download_service.dart';
@@ -24,14 +23,12 @@ class DownloadManagerHomePage extends StatefulWidget {
 class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
   String _currentTab = 'all';
   final TextEditingController _searchController = TextEditingController();
-  bool _isLoading = true;
   List<DownloadItem> _downloadList = DownloadService.downloadsList;
   Timer? _speedUpdateTimer;
 
   @override
   void initState() {
     super.initState();
-    _initializeData();
     _startSpeedUpdateTimer();
   }
 
@@ -71,20 +68,6 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
     debugPrint("Refreshing list...");
     setState(() {
       _downloadList = DownloadService.downloadsList;
-    });
-  }
-
-  Future<void> _initializeData() async {
-    // Initialize modules
-    Config.init();
-    DownloadEngine.init();
-
-    // Load downloads list
-    await DownloadService.loadDownloads(skipMissingFiles: false);
-
-    setState(() {
-      _downloadList = DownloadService.downloadsList;
-      _isLoading = false;
     });
   }
 
@@ -158,13 +141,6 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
     return Scaffold(
       // backgroundColor: Colors.white,
       body: Column(

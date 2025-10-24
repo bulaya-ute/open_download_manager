@@ -57,7 +57,32 @@ class Config {
   }
 
   static Future<void> init() async {
-    loadSettings();
+    await loadSettings();
+    
+    // Validate all required fields are non-null
+    final List<String> nullFields = [];
+    
+    if (partialDownloadFileExtension == null) nullFields.add('partialDownloadFileExtension');
+    if (downloadDir == null) nullFields.add('downloadDir');
+    if (maxSimultaneousDownloads == null) nullFields.add('maxSimultaneousDownloads');
+    if (groupByFileType == null) nullFields.add('groupByFileType');
+    if (fileTypeGroups == null) nullFields.add('fileTypeGroups');
+    if (language == null) nullFields.add('language');
+    if (theme == null) nullFields.add('theme');
+    if (startWithSystem == null) nullFields.add('startWithSystem');
+    if (minimizeToTray == null) nullFields.add('minimizeToTray');
+    if (serverHost == null) nullFields.add('serverHost');
+    if (serverPort == null) nullFields.add('serverPort');
+    
+    if (nullFields.isNotEmpty) {
+      final fieldsList = nullFields.join(', ');
+      throw StateError(
+        'Config initialization failed: The following required field(s) are null: $fieldsList. '
+        'Please check the config file at: $configPath'
+      );
+    }
+    
+    print('Config initialized successfully');
   }
 
   /// Load settings from config file

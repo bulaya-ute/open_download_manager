@@ -317,7 +317,6 @@ class PartialDownloadFile {
       }
 
       final header = PartialDownloadHeader.fromBytes(Uint8List.fromList(headerBytes));
-
       return PartialDownloadFile(
         header: header,
         filePath: filePath,

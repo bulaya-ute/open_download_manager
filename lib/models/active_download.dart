@@ -162,14 +162,12 @@ class ActiveDownload {
 
       final response = await _client!.send(request);
 
-      print("Here1");
       if (response.statusCode != 200 && response.statusCode != 206) {
         throw HttpException(
           'HTTP ${response.statusCode}',
           uri: Uri.parse(partialFileObject.header.url),
         );
       }
-      print("Here2");
 
       // Track download speed
       final speedTracker = _SpeedTracker();
@@ -188,8 +186,6 @@ class ActiveDownload {
           break;
         }
 
-        // print("Downloaded ${(_partialFile!.header.downloadedBytes/_partialFile!.header.fileSize!).toStringAsFixed(2)}");
-
         // Write chunk to partial file
         await _writeChunk(Uint8List.fromList(chunk));
 
@@ -205,6 +201,14 @@ class ActiveDownload {
       if (!_stopFlag && isDownloading) {
         // Download complete
         print('Download complete: ${partialFileObject.header.downloadFilename}');
+
+        // Update the header
+        partialFileObject.header.completed = true;
+        await partialFileObject.updateHeaderOnDisk();
+
+        // print("header completed: ${partialFileObject.header.completed}");
+        // print("disk version: ${(await PartialDownloadFile.load(partialFileObject.filePath)).header.completed}");
+
         await partialFileObject.extractPayload(
           removePayloadFromPartialFile: false,
         );

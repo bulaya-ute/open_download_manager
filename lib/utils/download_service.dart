@@ -56,6 +56,9 @@ class DownloadService {
         );
         await download.loadPartialFile();
         download.progress = download.partialFileObject!.progress;
+        if (download.partialFileObject!.header.completed) {
+          download.status = DownloadStatus.completed;
+        }
         
         // Set error message if present
         if (errorMessage != null) {
