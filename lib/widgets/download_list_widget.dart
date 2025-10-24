@@ -32,17 +32,17 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
 
   // Fixed column widths
   static const double checkboxWidth = 48.0;
-  static const double filenameWidth = 300.0;
+  static const double minFilenameWidth = 200.0; // Minimum width for filename
   static const double statusWidth = 250.0;
   static const double sizeWidth = 120.0;
   static const double urlWidth = 400.0;
   static const double speedWidth = 120.0;
   static const double dateWidth = 180.0;
 
-  // Calculate total width for horizontal scrolling
-  double get totalWidth =>
+  // Calculate minimum total width (all fixed columns + minimum filename)
+  double get minTotalWidth =>
       checkboxWidth +
-      filenameWidth +
+      minFilenameWidth +
       statusWidth +
       sizeWidth +
       urlWidth +
@@ -51,11 +51,19 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SizedBox(
-        width: totalWidth,
-        child: Column(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Check if we have enough space or need horizontal scrolling
+        final availableWidth = constraints.maxWidth;
+        final needsScrolling = availableWidth < minTotalWidth;
+        
+        // Calculate filename column width
+        final filenameWidth = needsScrolling
+            ? minFilenameWidth
+            : availableWidth - 
+              (checkboxWidth + statusWidth + sizeWidth + urlWidth + speedWidth + dateWidth);
+
+        final content = Column(
           children: [
             // Header with checkboxes and column names
             Container(
@@ -82,12 +90,12 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
                     ),
                   ),
                   // Column headers
-                  _buildColumnHeader('Filename', width: filenameWidth),
-                  _buildColumnHeader('Status', width: statusWidth),
-                  _buildColumnHeader('Size', width: sizeWidth),
-                  _buildColumnHeader('URL', width: urlWidth),
-                  _buildColumnHeader('Speed', width: speedWidth),
-                  _buildColumnHeader('Date Added', width: dateWidth),
+                  _buildColumnHeader('Filename', width: filenameWidth, isFlexible: !needsScrolling),
+                  _buildColumnHeader('Status', width: statusWidth, isFlexible: false),
+                  _buildColumnHeader('Size', width: sizeWidth, isFlexible: false),
+                  _buildColumnHeader('URL', width: urlWidth, isFlexible: false),
+                  _buildColumnHeader('Speed', width: speedWidth, isFlexible: false),
+                  _buildColumnHeader('Date Added', width: dateWidth, isFlexible: false),
                 ],
               ),
             ),
@@ -97,23 +105,39 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
                 itemCount: widget.downloads.length,
                 itemBuilder: (context, index) {
                   final download = widget.downloads[index];
-                  final row = buildDownloadRow(
+                  return buildDownloadRow(
                     download,
                     widget.onRefreshDownloadList,
+                    filenameWidth,
+                    !needsScrolling,
                   );
-                  return row;
                 },
               ),
             ),
           ],
-        ),
-      ),
+        );
+
+        // Wrap in horizontal scroll view if needed
+        if (needsScrolling) {
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: minTotalWidth,
+              child: content,
+            ),
+          );
+        } else {
+          return content;
+        }
+      },
     );
   }
 
   Widget buildDownloadRow(
     DownloadItem download,
     final Function() onRefreshDownloadList,
+    double filenameWidth,
+    bool isFilenameFlexible,
   ) {
     return GestureDetector(
       onSecondaryTapDown: (details) {
@@ -141,21 +165,35 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
                 ),
               ),
 
-              // Filename
-              SizedBox(
-                width: filenameWidth,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 12,
-                  ),
-                  child: Text(
-                    download.filename,
-                    style: const TextStyle(fontSize: 14),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
+              // Filename (flexible or fixed width)
+              isFilenameFlexible
+                  ? Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 12,
+                        ),
+                        child: Text(
+                          download.filename,
+                          style: const TextStyle(fontSize: 14),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    )
+                  : SizedBox(
+                      width: filenameWidth,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 12,
+                        ),
+                        child: Text(
+                          download.filename,
+                          style: const TextStyle(fontSize: 14),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
 
               // Status
               SizedBox(
@@ -237,46 +275,49 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
     );
   }
 
-  Widget _buildColumnHeader(String title, {required double width}) {
-    return SizedBox(
-      width: width,
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            if (_sortColumn == title.toLowerCase()) {
-              _sortAscending = !_sortAscending;
-            } else {
-              _sortColumn = title.toLowerCase();
-              _sortAscending = true;
-            }
-          });
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-          child: Row(
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
+  Widget _buildColumnHeader(String title, {required double width, required bool isFlexible}) {
+    final headerContent = InkWell(
+      onTap: () {
+        setState(() {
+          if (_sortColumn == title.toLowerCase()) {
+            _sortAscending = !_sortAscending;
+          } else {
+            _sortColumn = title.toLowerCase();
+            _sortAscending = true;
+          }
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+        child: Row(
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
               ),
-              const SizedBox(width: 4),
-              Icon(
-                _sortColumn == title.toLowerCase()
-                    ? (_sortAscending
-                          ? Icons.arrow_upward
-                          : Icons.arrow_downward)
-                    : Icons.unfold_more,
-                size: 16,
-                color: Colors.grey[600],
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              _sortColumn == title.toLowerCase()
+                  ? (_sortAscending
+                        ? Icons.arrow_upward
+                        : Icons.arrow_downward)
+                  : Icons.unfold_more,
+              size: 16,
+              color: Colors.grey[600],
+            ),
+          ],
         ),
       ),
     );
+
+    if (isFlexible) {
+      return Expanded(child: headerContent);
+    } else {
+      return SizedBox(width: width, child: headerContent);
+    }
   }
 
   Color getStatusColor(DownloadStatus status) {
