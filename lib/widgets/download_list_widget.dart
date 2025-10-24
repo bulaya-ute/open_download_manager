@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/download_item.dart';
 import '../models/download_status.dart';
 import 'download_details_dialog.dart';
+import '../utils/theme/colors.dart';
 
 class DownloadListWidget extends StatefulWidget {
   final List<DownloadItem> downloads;
@@ -68,8 +69,8 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
             // Header with checkboxes and column names
             Container(
               decoration: BoxDecoration(
-                color: Colors.grey[50],
-                border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
+                color: Theme.of(context).colorScheme.surface,
+                border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.outline)),
               ),
               child: Row(
                 children: [
@@ -148,7 +149,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
       },
       child: Container(
         decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+          border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(100))),
         ),
         child: Row(
             children: [
@@ -232,7 +233,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
                   ),
                   child: Text(
                     download.url,
-                    style: TextStyle(fontSize: 14, color: Colors.blue[600]),
+                    style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.primary),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -306,7 +307,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
                         : Icons.arrow_downward)
                   : Icons.unfold_more,
               size: 16,
-              color: Colors.grey[600],
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ],
         ),
@@ -321,17 +322,18 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
   }
 
   Color getStatusColor(DownloadStatus status) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     switch (status) {
       case DownloadStatus.completed:
-        return Colors.green;
+        return isDark ? completedGreen : completedGreenLight;
       case DownloadStatus.downloading:
-        return Colors.blue;
+        return isDark ? downloadingBlue : downloadingBlueLite;
       case DownloadStatus.error:
-        return Colors.red;
+        return isDark ? downloadErrorRed : downloadErrorRedLight;
       case DownloadStatus.paused:
-        return Colors.orange;
+        return isDark ? pausedAmber : pausedAmberLight;
       case DownloadStatus.stopped:
-        return Colors.orange;
+        return isDark ? pausedAmber : pausedAmberLight;
     }
   }
 
@@ -432,7 +434,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
                 size: 16,
                 color: download.status == DownloadStatus.completed
                     ? null
-                    : Colors.grey,
+                    : Theme.of(context).colorScheme.onSurface.withAlpha(100),
               ),
               const SizedBox(width: 8),
               Text(
@@ -440,7 +442,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
                 style: TextStyle(
                   color: download.status == DownloadStatus.completed
                       ? null
-                      : Colors.grey,
+                      : Theme.of(context).colorScheme.onSurface.withAlpha(100),
                 ),
               ),
             ],
@@ -456,7 +458,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
                 size: 16,
                 color: download.status == DownloadStatus.completed
                     ? null
-                    : Colors.grey,
+                    : Theme.of(context).colorScheme.onSurface.withAlpha(100),
               ),
               const SizedBox(width: 8),
               Text(
@@ -464,7 +466,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
                 style: TextStyle(
                   color: download.status == DownloadStatus.completed
                       ? null
-                      : Colors.grey,
+                      : Theme.of(context).colorScheme.onSurface.withAlpha(100),
                 ),
               ),
             ],
@@ -481,7 +483,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
                 size: 16,
                 color: download.status == DownloadStatus.error
                     ? null
-                    : Colors.grey,
+                    : Theme.of(context).colorScheme.onSurface.withAlpha(100),
               ),
               const SizedBox(width: 8),
               Text(
@@ -489,7 +491,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
                 style: TextStyle(
                   color: download.status == DownloadStatus.error
                       ? null
-                      : Colors.grey,
+                      : Theme.of(context).colorScheme.onSurface.withAlpha(100),
                 ),
               ),
             ],
@@ -514,16 +516,16 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
                 Icons.delete,
                 size: 16,
                 color: download.status == DownloadStatus.completed
-                    ? Colors.red
-                    : Colors.grey,
+                    ? errorRed
+                    : Theme.of(context).colorScheme.onSurface.withAlpha(100),
               ),
               const SizedBox(width: 8),
               Text(
                 'Delete file',
                 style: TextStyle(
                   color: download.status == DownloadStatus.completed
-                      ? Colors.red
-                      : Colors.grey,
+                      ? errorRed
+                      : Theme.of(context).colorScheme.onSurface.withAlpha(100),
                 ),
               ),
             ],
@@ -539,7 +541,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
                 size: 16,
                 color: download.status == DownloadStatus.completed
                     ? null
-                    : Colors.grey,
+                    : Theme.of(context).colorScheme.onSurface.withAlpha(100),
               ),
               const SizedBox(width: 8),
               Text(
@@ -547,7 +549,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
                 style: TextStyle(
                   color: download.status == DownloadStatus.completed
                       ? null
-                      : Colors.grey,
+                      : Theme.of(context).colorScheme.onSurface.withAlpha(100),
                 ),
               ),
             ],
@@ -563,7 +565,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
                 size: 16,
                 color: download.status == DownloadStatus.completed
                     ? null
-                    : Colors.grey,
+                    : Theme.of(context).colorScheme.onSurface.withAlpha(100),
               ),
               const SizedBox(width: 8),
               Text(
@@ -571,7 +573,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
                 style: TextStyle(
                   color: download.status == DownloadStatus.completed
                       ? null
-                      : Colors.grey,
+                      : Theme.of(context).colorScheme.onSurface.withAlpha(100),
                 ),
               ),
             ],

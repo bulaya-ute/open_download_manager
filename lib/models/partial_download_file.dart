@@ -1,15 +1,17 @@
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
+
 import 'partial_download_header.dart';
 
 /// Manages a partial download file with metadata header and payload
-/// 
+///
 /// File structure:
 /// - First 128 KB: JSON metadata header (padded with null bytes)
 /// - Remaining bytes: Downloaded file payload
-/// 
+///
 /// This allows pausing, resuming, and tracking download progress.
 class PartialDownloadFile {
   /// Header containing download metadata
@@ -24,10 +26,7 @@ class PartialDownloadFile {
   /// Last calculated download speed in bytes/second
   double _lastDownloadSpeed = 0.0;
 
-  PartialDownloadFile({
-    required this.header,
-    required this.filePath,
-  });
+  PartialDownloadFile({required this.header, required this.filePath});
 
   /// Get the byte position where payload writing should resume
   int getResumeByte() {
@@ -50,7 +49,9 @@ class PartialDownloadFile {
       return 0.0;
     }
 
-    final secondsSinceUpdate = DateTime.now().difference(_lastSpeedCalculation!).inSeconds;
+    final secondsSinceUpdate = DateTime.now()
+        .difference(_lastSpeedCalculation!)
+        .inSeconds;
     if (secondsSinceUpdate > 2) {
       return 0.0; // Speed data is stale
     }
@@ -63,15 +64,15 @@ class PartialDownloadFile {
 
     // Auto-select appropriate unit
     String selectedUnit;
-      if (size >= 1024 * 1024 * 1024) {
-        selectedUnit = 'GB';
-      } else if (size >= 1024 * 1024) {
-        selectedUnit = 'MB';
-      } else if (size >= 1024) {
-        selectedUnit = 'KB';
-      } else {
-        selectedUnit = 'B';
-      }
+    if (size >= 1024 * 1024 * 1024) {
+      selectedUnit = 'GB';
+    } else if (size >= 1024 * 1024) {
+      selectedUnit = 'MB';
+    } else if (size >= 1024) {
+      selectedUnit = 'KB';
+    } else {
+      selectedUnit = 'B';
+    }
 
     // Convert to selected unit
     double convertedSpeed;
@@ -91,8 +92,7 @@ class PartialDownloadFile {
         break;
     }
 
-      return '${convertedSpeed.toStringAsFixed(2)} $selectedUnit';
-
+    return '${convertedSpeed.toStringAsFixed(2)} $selectedUnit';
   }
 
   String getFormattedDownloadSpeed({bool formatted = true, String? unit}) {
@@ -137,7 +137,6 @@ class PartialDownloadFile {
     } else {
       return convertedSpeed.toString();
     }
-
   }
 
   /// Update download speed calculation
@@ -151,7 +150,7 @@ class PartialDownloadFile {
   //
 
   /// Update the header on disk without modifying the payload
-  /// 
+  ///
   /// Rewrites the first 128KB of the file with the current header data.
   /// Useful for updating metadata like lastAttempt, completed, or downloadedBytes
   /// without writing any payload data.
@@ -159,7 +158,10 @@ class PartialDownloadFile {
     final file = File(filePath);
 
     if (!await file.exists()) {
-      throw FileSystemException('Partial download file does not exist', filePath);
+      throw FileSystemException(
+        'Partial download file does not exist',
+        filePath,
+      );
     }
 
     // Open file in read-write mode
@@ -181,14 +183,17 @@ class PartialDownloadFile {
   }
 
   /// Append data to the payload and update header metadata
-  /// 
+  ///
   /// Writes the data to the end of the current payload and updates
   /// the header with new downloaded_bytes count and last_attempt timestamp.
   Future<void> appendToPayload(Uint8List data) async {
     final file = File(filePath);
 
     if (!await file.exists()) {
-      throw FileSystemException('Partial download file does not exist', filePath);
+      throw FileSystemException(
+        'Partial download file does not exist',
+        filePath,
+      );
     }
 
     final startTime = DateTime.now();
@@ -221,15 +226,15 @@ class PartialDownloadFile {
   }
 
   /// Extract the downloaded payload to the final file
-  /// 
+  ///
   /// Reads the payload from the partial download file and writes it to
   /// the destination file. Handles filename conflicts by appending numbers.
-  /// 
+  ///
   /// [removePayloadFromPartialFile] - If true, truncates the partial file
   /// to only contain the header after extraction.
-  /// 
+  ///
   /// [chunkSize] - Size of chunks to read/write at a time (default 1 MB)
-  /// 
+  ///
   /// Returns the path to the extracted file.
   Future<String> extractPayload({
     bool removePayloadFromPartialFile = true,
@@ -238,7 +243,10 @@ class PartialDownloadFile {
     final file = File(filePath);
 
     if (!await file.exists()) {
-      throw FileSystemException('Partial download file does not exist', filePath);
+      throw FileSystemException(
+        'Partial download file does not exist',
+        filePath,
+      );
     }
 
     // Construct output file path
@@ -268,7 +276,9 @@ class PartialDownloadFile {
       int bytesRemaining = header.downloadedBytes;
 
       while (bytesRemaining > 0) {
-        final bytesToRead = bytesRemaining < chunkSize ? bytesRemaining : chunkSize;
+        final bytesToRead = bytesRemaining < chunkSize
+            ? bytesRemaining
+            : chunkSize;
         final chunk = await inputFile.read(bytesToRead);
 
         if (chunk.isEmpty) {
@@ -316,21 +326,20 @@ class PartialDownloadFile {
         throw Exception('Invalid partial download file: header too small');
       }
 
-      final header = PartialDownloadHeader.fromBytes(Uint8List.fromList(headerBytes));
-      return PartialDownloadFile(
-        header: header,
-        filePath: filePath,
+      final header = PartialDownloadHeader.fromBytes(
+        Uint8List.fromList(headerBytes),
       );
+      return PartialDownloadFile(header: header, filePath: filePath);
     } finally {
       await raf.close();
     }
   }
 
   /// Create a new partial download file
-  /// 
+  ///
   /// Performs a HEAD request to gather metadata if needed, then creates
   /// the file with just the header (no payload initially).
-  /// 
+  ///
   /// Parameters with auto-detection:
   /// - [fileSize]: If null and [autoRequestFileSize] is true, retrieved via HEAD request
   /// - [downloadFilename]: If null and [autoRequestFilename] is true, extracted from URL/headers
@@ -352,7 +361,8 @@ class PartialDownloadFile {
     await Directory(downloadDir).create(recursive: true);
 
     // Determine what needs to be fetched
-    final needsHead = (fileSize == null && autoRequestFileSize) ||
+    final needsHead =
+        (fileSize == null && autoRequestFileSize) ||
         (downloadFilename == null && autoRequestFilename) ||
         (supportsResume == null && autoCheckResumeSupport);
 
@@ -380,7 +390,9 @@ class PartialDownloadFile {
     }
 
     // Check resume support
-    if (supportsResume == null && autoCheckResumeSupport && headResponse != null) {
+    if (supportsResume == null &&
+        autoCheckResumeSupport &&
+        headResponse != null) {
       final acceptRanges = headResponse.headers['accept-ranges'];
       if (acceptRanges != null) {
         supportsResume = acceptRanges.toLowerCase() == 'bytes';
@@ -396,7 +408,10 @@ class PartialDownloadFile {
     // Handle conflicts
     int counter = 1;
     while (await File(partialFilePath!).exists()) {
-      partialFilePath = path.join(downloadDir, '$downloadFilename($counter).odm');
+      partialFilePath = path.join(
+        downloadDir,
+        '$downloadFilename($counter).odm',
+      );
       counter++;
     }
 
@@ -430,7 +445,10 @@ class PartialDownloadFile {
   }
 
   /// Extract filename from URL or Content-Disposition header
-  static Future<String> _extractFilename(String url, http.Response? headResponse) async {
+  static Future<String> _extractFilename(
+    String url,
+    http.Response? headResponse,
+  ) async {
     String? filename;
 
     // Try Content-Disposition header first
@@ -438,12 +456,16 @@ class PartialDownloadFile {
       final contentDisposition = headResponse.headers['content-disposition'];
       if (contentDisposition != null) {
         // Try to extract filename from Content-Disposition
-        final filenameMatch = RegExp(r'filename="?([^"]+)"?').firstMatch(contentDisposition);
+        final filenameMatch = RegExp(
+          r'filename="?([^"]+)"?',
+        ).firstMatch(contentDisposition);
         if (filenameMatch != null) {
           filename = filenameMatch.group(1);
         } else {
           // Try RFC 5987 encoding
-          final filenameStarMatch = RegExp(r"filename\*=(?:UTF-8'')?([^;]+)").firstMatch(contentDisposition);
+          final filenameStarMatch = RegExp(
+            r"filename\*=(?:UTF-8'')?([^;]+)",
+          ).firstMatch(contentDisposition);
           if (filenameStarMatch != null) {
             filename = Uri.decodeComponent(filenameStarMatch.group(1)!);
           }

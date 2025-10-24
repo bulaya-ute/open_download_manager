@@ -42,6 +42,54 @@ const Color errorRed = Color(0xFFFF3B30); // iOS-like red
 /// For warning messages or highlighting potentially important information.
 const Color warningYellow = Color(0xFFFFCC00); // iOS-like yellow
 
+// --- Download Status Colors (Dark Theme) ---
+
+/// Blue for active/downloading state - matches the progress bar in the dark theme
+const Color downloadingBlue = Color(0xFF4A9EFF);
+
+/// Green for completed downloads - matches the completed state
+const Color completedGreen = Color(0xFF34D399);
+
+/// Amber/Yellow for paused downloads
+const Color pausedAmber = Color(0xFFFBBF24);
+
+/// Red for failed/error downloads
+const Color downloadErrorRed = Color(0xFFF87171);
+
+/// Gray for progress bar track/background
+const Color progressTrackGray = Color(0xFF2F3544);
+
+// --- Download Status Colors (Light Theme Equivalents) ---
+
+/// Blue for active/downloading state - light theme version
+const Color downloadingBlueLite = Color(0xFF2563EB);
+
+/// Green for completed downloads - light theme version
+const Color completedGreenLight = Color(0xFF10B981);
+
+/// Amber for paused downloads - light theme version
+const Color pausedAmberLight = Color(0xFFF59E0B);
+
+/// Red for failed/error downloads - light theme version
+const Color downloadErrorRedLight = Color(0xFFEF4444);
+
+/// Gray for progress bar track/background - light theme version
+const Color progressTrackGrayLight = Color(0xFFE5E7EB);
+
+// --- Settings/Sidebar Colors (from second screenshot) ---
+
+/// Selected sidebar item background (blue tint)
+const Color sidebarSelectedBg = Color(0xFF2C4F6F);
+
+/// Sidebar item hover background
+const Color sidebarHoverBg = Color(0xFF252D3F);
+
+/// Settings card/container background
+const Color settingsCardBg = Color(0xFF1F2733);
+
+/// Settings input field background
+const Color settingsInputBg = Color(0xFF252D3F);
+
 // --- Accent Colors (Examples - choose ones that fit your brand) ---
 // It's good to have a few accent colors that complement your primary blue.
 

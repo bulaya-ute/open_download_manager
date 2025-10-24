@@ -6,6 +6,7 @@ import 'package:open_download_manager/screens/settings_page.dart';
 import 'package:open_download_manager/utils/database_helper.dart';
 import 'package:open_download_manager/utils/download_engine.dart';
 import 'package:open_download_manager/utils/download_service.dart';
+import 'package:open_download_manager/utils/theme/colors.dart';
 import 'package:open_download_manager/widgets/add_download_dialog.dart';
 import 'package:open_download_manager/widgets/download_list_widget.dart';
 
@@ -141,6 +142,9 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+    final primary = Theme.of(context).colorScheme.primary;
+
     return Scaffold(
       // backgroundColor: Colors.white,
       body: Column(
@@ -151,63 +155,111 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
             child: Row(
               children: [
                 // Toolbar buttons
-                _buildToolbarButton(Icons.add, 'Add New Download', () async {
-                  await showDialog<Map<String, String>>(
-                    context: context,
-                    builder: (context) => AddDownloadDialog(
-                      onRefreshDownloadList: refreshDownloadList,
-                    ),
-                  );
-                  // Dialog handles everything internally now
-                }),
-                const SizedBox(width: 8),
-                _buildToolbarButton(
-                  Icons.play_arrow,
-                  'Resume selected downloads',
-                  () {
-                    _resumeSelectedDownloads();
-                  },
+                SizedBox(
+                  width: 300,
+                  child: Row(
+                    children: [
+                      _buildToolbarButton(
+                        Icons.add,
+                        'Add New Download',
+                        () async {
+                          await showDialog<Map<String, String>>(
+                            context: context,
+                            builder: (context) => AddDownloadDialog(
+                              onRefreshDownloadList: refreshDownloadList,
+                            ),
+                          );
+                          // Dialog handles everything internally now
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      _buildToolbarButton(
+                        Icons.play_arrow,
+                        'Resume selected downloads',
+                        () {
+                          _resumeSelectedDownloads();
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      _buildToolbarButton(
+                        Icons.pause,
+                        'Pause selected downloads',
+                        () {
+                          _pauseSelectedDownloads();
+                        },
+                      ),
+                      // const SizedBox(width: 8),
+                      // _buildToolbarButton(
+                      //   Icons.queue,
+                      //   'Queue selected downloads',
+                      //   () {
+                      //     ScaffoldMessenger.of(context).showSnackBar(
+                      //       const SnackBar(content: Text('Queue selected downloads')),
+                      //     );
+                      //   },
+                      // ),
+                      const SizedBox(width: 8),
+                      _buildToolbarButton(
+                        Icons.delete,
+                        'Delete selected downloads',
+                        () {
+                          _showDeleteConfirmationDialog();
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      _buildToolbarButton(Icons.settings, 'Settings', () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const SettingsPage(),
+                          ),
+                        );
+                      }),
+                      const SizedBox(width: 8),
+                      _buildRefreshButton(
+                        Icons.refresh,
+                        'Refresh Downloads',
+                        () {
+                          refreshDownloadList();
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 8),
-                _buildToolbarButton(
-                  Icons.pause,
-                  'Pause selected downloads',
-                  () {
-                    _pauseSelectedDownloads();
-                  },
-                ),
-                const SizedBox(width: 8),
-                _buildToolbarButton(
-                  Icons.queue,
-                  'Queue selected downloads',
-                  () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Queue selected downloads')),
-                    );
-                  },
-                ),
-                const SizedBox(width: 8),
-                _buildToolbarButton(
-                  Icons.delete,
-                  'Delete selected downloads',
-                  () {
-                    _showDeleteConfirmationDialog();
-                  },
-                ),
-                const SizedBox(width: 8),
-                _buildToolbarButton(Icons.settings, 'Settings', () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const SettingsPage(),
-                    ),
-                  );
-                }),
 
-                const SizedBox(width: 8),
-                _buildRefreshButton(Icons.refresh, 'Refresh Downloads', () {
-                  refreshDownloadList();
-                }),
-                const Spacer(),
+                Spacer(),
+
+                // Tab navigation
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: Theme.of(context).colorScheme.surface,
+                    border: BoxBorder.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withAlpha(25),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildTab('all', 'All Downloads', _getTabCount('all')),
+                      _buildTab(
+                        'completed',
+                        'Completed',
+                        _getTabCount('completed'),
+                      ),
+                      _buildTab(
+                        'incomplete',
+                        'Incomplete',
+                        _getTabCount('incomplete'),
+                      ),
+                      _buildTab('failed', 'Failed', _getTabCount('failed')),
+                    ],
+                  ),
+                ),
+
+                Spacer(),
 
                 // Search field
                 SizedBox(
@@ -219,21 +271,21 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
                       prefixIcon: const Icon(Icons.search),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
+                        borderSide: BorderSide(color: onSurface.withAlpha(25)),
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.blue),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[50],
+                      // enabledBorder: OutlineInputBorder(
+                      //   borderRadius: BorderRadius.circular(8),
+                      //   borderSide: BorderSide(color: Colors.grey[300]!),
+                      // ),
+                      // focusedBorder: OutlineInputBorder(
+                      //   borderRadius: BorderRadius.circular(8),
+                      //   borderSide: BorderSide(color: primary),
+                      // ),
+                      filled: false,
+                      // fillColor: Colors.grey[50],
                       contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
+                        horizontal: 0,
+                        vertical: 0,
                       ),
                     ),
                     onChanged: (value) {
@@ -245,38 +297,25 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
             ),
           ),
 
-          // Tab navigation
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                _buildTab('all', 'All Downloads', _getTabCount('all')),
-                _buildTab('completed', 'Completed', _getTabCount('completed')),
-                _buildTab(
-                  'incomplete',
-                  'Incomplete',
-                  _getTabCount('incomplete'),
-                ),
-                _buildTab('failed', 'Failed', _getTabCount('failed')),
-              ],
-            ),
-          ),
-
-          // Downloads list
           Expanded(
             child: Container(
-              margin: const EdgeInsets.all(16),
+              margin: const EdgeInsets.only(
+                left: 16,
+                right: 16,
+                bottom: 16,
+                top: 0,
+              ),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey[300]!),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline,
+                ),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: DownloadListWidget(
                 downloads: _filteredDownloads,
                 currentTab: _currentTab,
                 onRefreshDownloadList: () {
-                  setState(() {
-
-                  });
+                  setState(() {});
                 },
                 onToggleSelection: (DownloadItem download) {
                   setState(() {
@@ -308,28 +347,34 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
   Widget _buildTab(String tabKey, String title, int count) {
     final isActive = _currentTab == tabKey;
 
+    final onSurface = Theme.of(context).colorScheme.onSurface;
+
     return GestureDetector(
       onTap: () {
         setState(() {
           _currentTab = tabKey;
         });
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        margin: const EdgeInsets.only(right: 8),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: isActive ? Colors.blue : Colors.transparent,
-              width: 2,
-            ),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          margin: const EdgeInsets.only(right: 4),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            color: isActive
+                ? Theme.of(context).scaffoldBackgroundColor
+                : Colors.transparent,
+            // border: Border.all(
+            //   color: Theme.of(context).colorScheme.onSurface.withAlpha(25)
+            //   ),
           ),
-        ),
-        child: Text(
-          '$title($count)',
-          style: TextStyle(
-            color: isActive ? Colors.blue : Colors.grey[600],
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+          child: Text(
+            '$title($count)',
+            style: TextStyle(
+              color: isActive ? onSurface : onSurface.withAlpha(200),
+              fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+            ),
           ),
         ),
       ),
@@ -347,8 +392,8 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
         icon: Icon(icon),
         onPressed: onPressed,
         style: IconButton.styleFrom(
-          backgroundColor: Colors.grey[100],
-          foregroundColor: Colors.grey[700],
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          foregroundColor: Theme.of(context).colorScheme.onSurface,
           padding: const EdgeInsets.all(8),
         ),
       ),
@@ -366,8 +411,8 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
         icon: Icon(icon),
         onPressed: onPressed,
         style: IconButton.styleFrom(
-          backgroundColor: Colors.grey[100],
-          foregroundColor: Colors.grey[700],
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          foregroundColor: Theme.of(context).colorScheme.onSurface,
           padding: const EdgeInsets.all(8),
         ),
       ),
@@ -428,7 +473,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Download completed: ${download.filename}'),
-                backgroundColor: Colors.green,
+                backgroundColor: completedGreen,
               ),
             );
           },
@@ -453,7 +498,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Download error: ${download.filename}'),
-                backgroundColor: Colors.red,
+                backgroundColor: downloadErrorRed,
               ),
             );
           },
@@ -476,7 +521,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to resume ${download.filename}: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: downloadErrorRed,
           ),
         );
       }
@@ -520,7 +565,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to pause ${download.filename}: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: downloadErrorRed,
           ),
         );
       }
@@ -545,7 +590,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
         builder: (context, setDialogState) => AlertDialog(
           title: Row(
             children: [
-              const Icon(Icons.warning, color: Colors.orange),
+              Icon(Icons.warning, color: warningYellow),
               const SizedBox(width: 8),
               Text(
                 'Delete ${selectedDownloads.length} download${selectedDownloads.length > 1 ? 's' : ''}?',
@@ -585,8 +630,8 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
+                backgroundColor: errorRed,
+                foregroundColor: white,
               ),
               child: const Text('Delete'),
             ),
@@ -646,7 +691,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
-          backgroundColor: failCount > 0 ? Colors.orange : Colors.green,
+          backgroundColor: failCount > 0 ? warningYellow : completedGreen,
         ),
       );
     }

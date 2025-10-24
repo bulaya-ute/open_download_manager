@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/app_settings.dart';
+import '../utils/theme/colors.dart';
 // import '../utils/data_service.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -61,7 +62,7 @@ class _SettingsPageState extends State<SettingsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Settings saved successfully'),
-            backgroundColor: Colors.green,
+            backgroundColor: successGreen,
           ),
         );
       }
@@ -70,7 +71,7 @@ class _SettingsPageState extends State<SettingsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error saving settings: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: errorRed,
           ),
         );
       }
@@ -84,13 +85,13 @@ class _SettingsPageState extends State<SettingsPage> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: Row(
         children: [
           // Left sidebar
           Container(
             width: 250,
-            color: Colors.grey[50],
+            color: Theme.of(context).colorScheme.surface,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -139,7 +140,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     border: Border(
-                      bottom: BorderSide(color: Colors.grey[200]!),
+                      bottom: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(100)),
                     ),
                   ),
                   child: Row(
@@ -161,7 +162,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             prefixIcon: const Icon(Icons.search, size: 20),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
+                              borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 12,
@@ -184,7 +185,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    border: Border(top: BorderSide(color: Colors.grey[200]!)),
+                    border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(100))),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -197,8 +198,8 @@ class _SettingsPageState extends State<SettingsPage> {
                       ElevatedButton(
                         onPressed: _saveSettings,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: white,
                         ),
                         child: const Text('Save Changes'),
                       ),
@@ -220,18 +221,18 @@ class _SettingsPageState extends State<SettingsPage> {
       child: ListTile(
         leading: Icon(
           icon,
-          color: isSelected ? Colors.blue : Colors.grey[600],
+          color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant,
           size: 20,
         ),
         title: Text(
           title,
           style: TextStyle(
-            color: isSelected ? Colors.blue : Colors.grey[700],
+            color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
         selected: isSelected,
-        selectedTileColor: Colors.blue[50],
+        selectedTileColor: sidebarSelectedBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         onTap: () {
           setState(() {
@@ -269,7 +270,7 @@ class _SettingsPageState extends State<SettingsPage> {
           '',
           Row(
             children: [
-              const Icon(Icons.folder, color: Colors.grey),
+              Icon(Icons.folder, color: Theme.of(context).colorScheme.onSurfaceVariant),
               const SizedBox(width: 8),
               Text(_settings.defaultDownloadLocation),
               const Spacer(),
@@ -444,7 +445,7 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 8),
           Text(
             'Limit the maximum download speed to prevent affecting other network activities',
-            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
           ),
         ],
       ],
@@ -454,7 +455,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildFileTypeGroupsTable() {
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
+        border: Border.all(color: Theme.of(context).colorScheme.outline),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -463,7 +464,7 @@ class _SettingsPageState extends State<SettingsPage> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.grey[50],
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(8),
                 topRight: Radius.circular(8),
@@ -494,7 +495,7 @@ class _SettingsPageState extends State<SettingsPage> {
             return Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: Colors.grey[200]!)),
+                border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(100))),
               ),
               child: Row(
                 children: [
@@ -651,7 +652,7 @@ class _SettingsPageState extends State<SettingsPage> {
         const SizedBox(height: 12),
         ElevatedButton(
           onPressed: () {},
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          style: ElevatedButton.styleFrom(backgroundColor: errorRed),
           child: const Text('Reset All Settings'),
         ),
       ],
@@ -722,10 +723,10 @@ class _SettingsPageState extends State<SettingsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
+        Row(
           children: [
-            Icon(Icons.download, size: 48, color: Colors.blue),
-            SizedBox(width: 16),
+            Icon(Icons.download, size: 48, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 16),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -745,9 +746,9 @@ class _SettingsPageState extends State<SettingsPage> {
           style: TextStyle(fontSize: 16),
         ),
         const SizedBox(height: 24),
-        const Text(
+        Text(
           'Copyright © 2024 Open Download Manager Team',
-          style: TextStyle(color: Colors.grey),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 24),
         Row(
@@ -784,7 +785,7 @@ class _SettingsPageState extends State<SettingsPage> {
         if (description.isNotEmpty) ...[
           Text(
             description,
-            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
           ),
           const SizedBox(height: 8),
         ],

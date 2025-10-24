@@ -3,6 +3,7 @@ import 'package:open_download_manager/screens/downloads_page.dart';
 import 'package:open_download_manager/utils/config.dart';
 import 'package:open_download_manager/utils/download_engine.dart';
 import 'package:open_download_manager/utils/download_service.dart';
+import 'package:open_download_manager/utils/theme/colors.dart';
 
 /// Initialization screen that loads all required resources before showing the main app
 class InitializationScreen extends StatefulWidget {
@@ -67,7 +68,7 @@ class _InitializationScreenState extends State<InitializationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -76,17 +77,17 @@ class _InitializationScreenState extends State<InitializationScreen> {
             Icon(
               Icons.download,
               size: 80,
-              color: _hasError ? Colors.red : Colors.blue,
+              color: _hasError ? errorRed : Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(height: 32),
 
             // App name
-            const Text(
+            Text(
               'Open Download Manager',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 48),
@@ -97,24 +98,24 @@ class _InitializationScreenState extends State<InitializationScreen> {
               const SizedBox(height: 24),
               Text(
                 _statusMessage,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
-                  color: Colors.black54,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ] else ...[
-              const Icon(
+              Icon(
                 Icons.error_outline,
                 size: 64,
-                color: Colors.red,
+                color: errorRed,
               ),
               const SizedBox(height: 24),
               Text(
                 _statusMessage,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: Colors.red,
+                  color: errorRed,
                 ),
               ),
               const SizedBox(height: 16),
@@ -122,15 +123,15 @@ class _InitializationScreenState extends State<InitializationScreen> {
                 margin: const EdgeInsets.symmetric(horizontal: 32),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: errorRed.withAlpha(25),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.shade200),
+                  border: Border.all(color: errorRed.withAlpha(100)),
                 ),
                 child: SelectableText(
                   _errorMessage ?? 'Unknown error',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.red.shade900,
+                    color: errorRed,
                     fontFamily: 'monospace',
                   ),
                 ),
@@ -148,8 +149,8 @@ class _InitializationScreenState extends State<InitializationScreen> {
                 icon: const Icon(Icons.refresh),
                 label: const Text('Retry'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: white,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 32,
                     vertical: 16,
