@@ -30,56 +30,84 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
   String _sortColumn = 'filename';
   bool _sortAscending = true;
 
+  // Fixed column widths
+  static const double checkboxWidth = 48.0;
+  static const double filenameWidth = 300.0;
+  static const double statusWidth = 250.0;
+  static const double sizeWidth = 120.0;
+  static const double urlWidth = 400.0;
+  static const double speedWidth = 120.0;
+  static const double dateWidth = 180.0;
+
+  // Calculate total width for horizontal scrolling
+  double get totalWidth =>
+      checkboxWidth +
+      filenameWidth +
+      statusWidth +
+      sizeWidth +
+      urlWidth +
+      speedWidth +
+      dateWidth;
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Header with checkboxes and column names
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
-          ),
-          child: Row(
-            children: [
-              // Select all checkbox
-              Checkbox(
-                value:
-                    widget.downloads.isNotEmpty &&
-                    widget.downloads.every((item) => item.isSelected),
-                onChanged: (value) {
-                  if (value == true) {
-                    widget.onSelectAll();
-                  } else {
-                    widget.onDeselectAll();
-                  }
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: SizedBox(
+        width: totalWidth,
+        child: Column(
+          children: [
+            // Header with checkboxes and column names
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
+              ),
+              child: Row(
+                children: [
+                  // Select all checkbox
+                  SizedBox(
+                    width: checkboxWidth,
+                    child: Checkbox(
+                      value:
+                          widget.downloads.isNotEmpty &&
+                          widget.downloads.every((item) => item.isSelected),
+                      onChanged: (value) {
+                        if (value == true) {
+                          widget.onSelectAll();
+                        } else {
+                          widget.onDeselectAll();
+                        }
+                      },
+                    ),
+                  ),
+                  // Column headers
+                  _buildColumnHeader('Filename', width: filenameWidth),
+                  _buildColumnHeader('Status', width: statusWidth),
+                  _buildColumnHeader('Size', width: sizeWidth),
+                  _buildColumnHeader('URL', width: urlWidth),
+                  _buildColumnHeader('Speed', width: speedWidth),
+                  _buildColumnHeader('Date Added', width: dateWidth),
+                ],
+              ),
+            ),
+            // Download items list
+            Expanded(
+              child: ListView.builder(
+                itemCount: widget.downloads.length,
+                itemBuilder: (context, index) {
+                  final download = widget.downloads[index];
+                  final row = buildDownloadRow(
+                    download,
+                    widget.onRefreshDownloadList,
+                  );
+                  return row;
                 },
               ),
-              // Column headers
-              _buildColumnHeader('Filename', flex: 3),
-              _buildColumnHeader('Status', flex: 2),
-              _buildColumnHeader('Size', flex: 1),
-              _buildColumnHeader('URL', flex: 3),
-              _buildColumnHeader('Speed', flex: 1),
-              _buildColumnHeader('Date Added', flex: 2),
-            ],
-          ),
+            ),
+          ],
         ),
-        // Download items list
-        Expanded(
-          child: ListView.builder(
-            itemCount: widget.downloads.length,
-            itemBuilder: (context, index) {
-              final download = widget.downloads[index];
-              final row = buildDownloadRow(
-                download,
-                widget.onRefreshDownloadList,
-              );
-              return row;
-            },
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -99,116 +127,119 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
           border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
         ),
         child: Row(
-          children: [
-            // Checkbox
-            Checkbox(
-              value: download.isSelected,
-              onChanged: (value) {
-                // widget.onToggleSelection(download);
-                download.isSelected = value!;
-                onRefreshDownloadList();
-              },
-            ),
-
-            // Filename
-            Expanded(
-              flex: 3,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 12,
-                ),
-                child: Text(
-                  download.filename,
-                  style: const TextStyle(fontSize: 14),
-                  overflow: TextOverflow.ellipsis,
+            children: [
+              // Checkbox
+              SizedBox(
+                width: checkboxWidth,
+                child: Checkbox(
+                  value: download.isSelected,
+                  onChanged: (value) {
+                    // widget.onToggleSelection(download);
+                    download.isSelected = value!;
+                    onRefreshDownloadList();
+                  },
                 ),
               ),
-            ),
 
-            // Status
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 12,
-                ),
-                child: _buildStatusColumn(download),
-              ),
-            ),
-
-            // Size
-            Expanded(
-              flex: 1,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 12,
-                ),
-                child: Text(
-                  download.partialFileObject!.getFormattedFileSize(),
-                  style: const TextStyle(fontSize: 14),
+              // Filename
+              SizedBox(
+                width: filenameWidth,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 12,
+                  ),
+                  child: Text(
+                    download.filename,
+                    style: const TextStyle(fontSize: 14),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ),
-            ),
 
-            // URL
-            Expanded(
-              flex: 3,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 12,
-                ),
-                child: Text(
-                  download.url,
-                  style: TextStyle(fontSize: 14, color: Colors.blue[600]),
-                  overflow: TextOverflow.ellipsis,
+              // Status
+              SizedBox(
+                width: statusWidth,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 12,
+                  ),
+                  child: _buildStatusColumn(download),
                 ),
               ),
-            ),
 
-            // Speed
-            Expanded(
-              flex: 1,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 12,
-                ),
-                child: Text(
-                  download.status != DownloadStatus.downloading
-                      ? " "
-                      : download.partialFileObject!.getFormattedDownloadSpeed(),
-                  style: const TextStyle(fontSize: 14),
+              // Size
+              SizedBox(
+                width: sizeWidth,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 12,
+                  ),
+                  child: Text(
+                    download.partialFileObject!.getFormattedFileSize(),
+                    style: const TextStyle(fontSize: 14),
+                  ),
                 ),
               ),
-            ),
 
-            // Date Added
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 12,
-                ),
-                child: Text(
-                  "${download.dateAdded}",
-                  style: const TextStyle(fontSize: 14),
+              // URL
+              SizedBox(
+                width: urlWidth,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 12,
+                  ),
+                  child: Text(
+                    download.url,
+                    style: TextStyle(fontSize: 14, color: Colors.blue[600]),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ),
-            ),
-          ],
+
+              // Speed
+              SizedBox(
+                width: speedWidth,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 12,
+                  ),
+                  child: Text(
+                    download.status != DownloadStatus.downloading
+                        ? " "
+                        : download.partialFileObject!.getFormattedDownloadSpeed(),
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+              ),
+
+              // Date Added
+              SizedBox(
+                width: dateWidth,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 12,
+                  ),
+                  child: Text(
+                    "${download.dateAdded}",
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
     );
   }
 
-  Widget _buildColumnHeader(String title, {int flex = 1}) {
-    return Expanded(
-      flex: flex,
+  Widget _buildColumnHeader(String title, {required double width}) {
+    return SizedBox(
+      width: width,
       child: InkWell(
         onTap: () {
           setState(() {
