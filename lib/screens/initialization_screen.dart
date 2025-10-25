@@ -27,25 +27,9 @@ class _InitializationScreenState extends State<InitializationScreen> {
     _initializeApp();
   }
 
-  Future<dynamic> _handleMethodCall(MethodCall call, int fromWindowId) async {
-    if (call.method == 'message_from_secondary') {
-      final message = call.arguments.toString();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
-
-      return 'Message received by main window';
-    }
-    return null;
-  }
 
   Future<void> _initializeApp() async {
     try {
-      // Step 0: Listen for messages from secondary windows
-      DesktopMultiWindow.setMethodHandler(_handleMethodCall);
-
-
       // Step 1: Initialize Config
       setState(() {
         _statusMessage = 'Loading configuration...';

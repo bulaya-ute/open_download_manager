@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:open_download_manager/screens/settings_page.dart';
 import 'package:open_download_manager/utils/database_helper.dart';
 import 'package:open_download_manager/core/download_engine.dart';
@@ -11,6 +14,7 @@ import 'package:open_download_manager/widgets/download_list_widget.dart';
 import '../core/window_manager.dart';
 import '../models/download_item.dart';
 import '../models/download_status.dart';
+import '../models/partial_download_file.dart';
 
 class DownloadManagerHomePage extends StatefulWidget {
   const DownloadManagerHomePage({super.key});
@@ -29,7 +33,30 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
   @override
   void initState() {
     super.initState();
-    _startSpeedUpdateTimer();
+    // _startSpeedUpdateTimer();
+
+    // Create listener for spawned windows
+    DesktopMultiWindow.setMethodHandler(_handleMethodCall);
+  }
+
+  Future<dynamic> _handleMethodCall(MethodCall call, int fromWindowId) async {
+    if (call.method == 'message_from_secondary') {
+      final Map<String, dynamic> message = jsonDecode(
+        call.arguments.toString(),
+      );
+
+      await _addDownload(
+        windowId: fromWindowId,
+        url: message["url"],
+        filename: message["filename"],
+      );
+      setState(() {
+
+      });
+
+      return 'Message received by main window';
+    }
+    return null;
   }
 
   @override
@@ -167,7 +194,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
                           //   ),
                           // );
 
-                        WindowManager.createWindow("Add Download");
+                          WindowManager.createWindow("Add Download");
                         },
                       ),
                       const SizedBox(width: 8),
@@ -478,15 +505,6 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
           onError: (errorMessage) {
             // Update status to error in UI
             setState(() {
-              // final index = _downloadList.indexWhere(
-              //   (d) => d.partialFilePath == download.partialFilePath,
-              // );
-              // if (index != -1) {
-              //   _downloadList[index] = _downloadList[index].copyWith(
-              //     status: DownloadStatus.error,
-              //   );
-              //   _downloadList[index].errorMessage = errorMessage;
-              // }
               setState(() {
                 download.status = DownloadStatus.error;
                 download.errorMessage = errorMessage;
@@ -503,14 +521,6 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
           onPause: () {
             // Update status to paused in UI
             setState(() {
-              // final index = _downloadList.indexWhere(
-              //   (d) => d.partialFilePath == download.partialFilePath,
-              // );
-              // if (index != -1) {
-              //   _downloadList[index] = _downloadList[index].copyWith(
-              //     status: DownloadStatus.paused,
-              //   );
-              // }
               download.status = DownloadStatus.paused;
             });
           },
@@ -690,6 +700,69 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
           backgroundColor: failCount > 0 ? warningYellow : completedGreen,
         ),
       );
+    }
+  }
+
+  Future<void> _addDownload({
+    required int windowId,
+    required String url,
+    required String filename,
+  }) async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      url = url.trim();
+      filename = filename.trim();
+
+      // Create the partial download file
+      final partialFile = await PartialDownloadFile.create(
+        url: url,
+        downloadFilename: filename,
+      );
+
+      // Add to database
+      await DatabaseHelper.upsertDownload(
+        partialFilePath: partialFile.filePath,
+        status: "paused",
+      );
+
+      // Reload downloads list
+      await DownloadService.loadDownloads();
+      setState(() {});
+
+      // Close loading dialog
+      if (mounted) Navigator.of(context).pop();
+
+      // Close the add download dialog
+      WindowManager.closeWindow(windowId);
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Download added: $filename'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog
+      if (mounted) Navigator.of(context).pop();
+
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to create download: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }
