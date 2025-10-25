@@ -6,9 +6,9 @@ import 'package:open_download_manager/utils/download_service.dart';
 enum FilenameStatus { loading, success, error, none }
 
 class AddDownloadDialog extends StatefulWidget {
-  final Future<void> Function() onRefreshDownloadList;
+  final Future<void> Function() refreshUICallback;
 
-  const AddDownloadDialog({super.key, required this.onRefreshDownloadList});
+  const AddDownloadDialog({super.key, required this.refreshUICallback});
 
   @override
   State<AddDownloadDialog> createState() => _AddDownloadDialogState();
@@ -305,7 +305,7 @@ class _AddDownloadDialogState extends State<AddDownloadDialog> {
 
                             // Reload downloads list
                             await DownloadService.loadDownloads();
-                            await widget.onRefreshDownloadList();
+                            await widget.refreshUICallback();
 
                             // Close loading dialog
                             if (mounted) Navigator.of(context).pop();

@@ -4,12 +4,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:open_download_manager/screens/settings_page.dart';
 import 'package:open_download_manager/utils/database_helper.dart';
-import 'package:open_download_manager/utils/download_engine.dart';
+import 'package:open_download_manager/core/download_engine.dart';
 import 'package:open_download_manager/utils/download_service.dart';
 import 'package:open_download_manager/utils/theme/colors.dart';
-import 'package:open_download_manager/widgets/add_download_dialog.dart';
 import 'package:open_download_manager/widgets/download_list_widget.dart';
-
+import '../core/window_manager.dart';
 import '../models/download_item.dart';
 import '../models/download_status.dart';
 
@@ -50,9 +49,8 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
 
       setState(() {
         for (var download in _downloadList) {
-          if (download.partialFilePath != null &&
-              engineStatus.containsKey(download.partialFilePath)) {
-            final status = engineStatus[download.partialFilePath!];
+          if (engineStatus.containsKey(download.partialFilePath)) {
+            final status = engineStatus[download.partialFilePath];
 
             // Update speed if available (formatted string like "1.5 MB/s")
             if (status != null && status['download_speed'] != null) {
@@ -143,7 +141,6 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
   @override
   Widget build(BuildContext context) {
     final onSurface = Theme.of(context).colorScheme.onSurface;
-    final primary = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       // backgroundColor: Colors.white,
@@ -163,13 +160,14 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
                         Icons.add,
                         'Add New Download',
                         () async {
-                          await showDialog<Map<String, String>>(
-                            context: context,
-                            builder: (context) => AddDownloadDialog(
-                              onRefreshDownloadList: refreshDownloadList,
-                            ),
-                          );
-                          // Dialog handles everything internally now
+                          // await showDialog<Map<String, String>>(
+                          //   context: context,
+                          //   builder: (context) => AddDownloadDialog(
+                          //     onRefreshDownloadList: refreshDownloadList,
+                          //   ),
+                          // );
+
+                        WindowManager.createWindow("Add Download");
                         },
                       ),
                       const SizedBox(width: 8),
@@ -656,13 +654,11 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
     for (final download in selectedDownloads) {
       try {
         // Remove from database
-        if (download.partialFilePath != null) {
-          await DatabaseHelper.deleteDownload(download.partialFilePath!);
-        }
+        await DatabaseHelper.deleteDownload(download.partialFilePath);
 
         // Delete file from disk if requested
-        if (deleteFiles && download.partialFilePath != null) {
-          final file = File(download.partialFilePath!);
+        if (deleteFiles) {
+          final file = File(download.partialFilePath);
           if (await file.exists()) {
             await file.delete();
           }

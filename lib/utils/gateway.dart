@@ -3,7 +3,8 @@ import 'dart:io';
 import 'package:flutter/rendering.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:open_download_manager/utils/config.dart';
+
+import '../core/config.dart';
 
 /// Responsible for communication with the back end
 class Gateway {

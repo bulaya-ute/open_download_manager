@@ -1,9 +1,12 @@
+import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:open_download_manager/screens/downloads_page.dart';
-import 'package:open_download_manager/utils/config.dart';
-import 'package:open_download_manager/utils/download_engine.dart';
+import 'package:open_download_manager/core/download_engine.dart';
 import 'package:open_download_manager/utils/download_service.dart';
 import 'package:open_download_manager/utils/theme/colors.dart';
+
+import '../core/config.dart';
 
 /// Initialization screen that loads all required resources before showing the main app
 class InitializationScreen extends StatefulWidget {
@@ -24,8 +27,25 @@ class _InitializationScreenState extends State<InitializationScreen> {
     _initializeApp();
   }
 
+  Future<dynamic> _handleMethodCall(MethodCall call, int fromWindowId) async {
+    if (call.method == 'message_from_secondary') {
+      final message = call.arguments.toString();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+
+      return 'Message received by main window';
+    }
+    return null;
+  }
+
   Future<void> _initializeApp() async {
     try {
+      // Step 0: Listen for messages from secondary windows
+      DesktopMultiWindow.setMethodHandler(_handleMethodCall);
+
+
       // Step 1: Initialize Config
       setState(() {
         _statusMessage = 'Loading configuration...';

@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+// import 'package:http/http.dart' as http;
 import '../models/active_download.dart';
 import '../models/partial_download_file.dart';
 import 'config.dart';
+import 'dart:typed_data';
 
 /// Manages multiple active downloads (Singleton)
 class DownloadEngine {
@@ -110,7 +110,7 @@ class DownloadEngine {
 
   /// Process the queue - start downloads if slots are available
   static Future<void> _processQueue() async {
-    final maxDownloads = Config.maxSimultaneousDownloads ?? 4;
+    final maxDownloads = Config.maxSimultaneousDownloads!;
 
     // Start downloads while we have slots and queued items
     while (_activeDownloads.length < maxDownloads &&

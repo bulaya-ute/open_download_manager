@@ -2,7 +2,8 @@
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:path/path.dart' as path;
 import 'dart:io';
-import 'package:open_download_manager/utils/config.dart';
+
+import '../core/config.dart';
 
 /// Manages SQLite database operations for download history
 class DatabaseHelper {
