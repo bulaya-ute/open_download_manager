@@ -3,20 +3,23 @@ import 'package:flutter/material.dart';
 
 
 final darkTheme = ThemeData.dark().copyWith(
-  scaffoldBackgroundColor: const Color(0xFF101921), // Dark slate blue
+  scaffoldBackgroundColor: const Color(0xFF101922),
   cardColor: const Color(0xFF0f172a),
   colorScheme: const ColorScheme.dark(
     primary: Color(0xFF4A9EFF),
     secondary: Color(0xFF34D399),
-    surface: Color(0xFF162033),
+    surface: Color(0xFF101826),
+    surfaceBright: Color(0xFF172131),
     onSurface: Color(0xFFE8EAED),
+
     onSurfaceVariant: Color(0xFF9AA0B0),
     outline: Color(0xFF1e293b),
+    outlineVariant: Color(0xff334155),
     error: Color(0xFFF87171), // Red for errors
   ),
 
   cardTheme: const CardThemeData(
-    color: Color(0xFF161f32),
+    color: Color(0xFF101826),
     elevation: 0,
     margin: EdgeInsets.zero,
   ),

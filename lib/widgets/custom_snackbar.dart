@@ -20,9 +20,10 @@ class CustomSnackBar {
     // Use SnackBar for desktop platforms
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+
+        content: Text(message, style: TextStyle(color: Theme.of(context).colorScheme.onSurface),),
         duration: duration,
-        backgroundColor: isError ? Colors.red : Theme.of(context).scaffoldBackgroundColor,
+        backgroundColor: isError ? Colors.red : Theme.of(context).colorScheme.surface,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
       ),

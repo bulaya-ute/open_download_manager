@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:open_download_manager/widgets/clickable_container.dart';
+import 'package:open_download_manager/widgets/custom_snackbar.dart';
 import 'package:open_download_manager/widgets/option_selector.dart';
 import 'package:open_download_manager/widgets/padded_column.dart';
 import 'package:open_download_manager/widgets/settings_option.dart';
 import 'package:open_download_manager/widgets/stacked_container_group.dart';
+import '../core/config.dart';
 import '../models/app_settings.dart';
 import '../utils/theme/colors.dart';
 // import '../utils/data_service.dart';
@@ -25,6 +27,10 @@ class _SettingsPageState extends State<SettingsPage> {
   List<Map<String, String>> _fileTypeGroups = [];
 
   final TextEditingController _searchController = TextEditingController();
+
+  void _changeDownloadDir() {
+    CustomSnackBar.showMessage(context, "Implement change download dir");
+  }
 
   @override
   void initState() {
@@ -285,11 +291,13 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildDownloadsContent() {
     return PaddedColumn(
+      paddingLTRB: [0, 0, 0, 0],
       spacing: 24,
       children: [
         StackedContainerGroup(
           title: "Download Behaviour",
           children: [
+            // Download folder
             ExtendedSettingsOption(
               body: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -317,14 +325,111 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ),
 
-                  ClickableContainer(
-                      borderRadius: 8,
-                      borderColor: Theme.of(context).colorScheme.outline,
-                      child: Row(
-                        children: [
+                  SizedBox(height: 8),
 
+                  ClickableContainer(
+                    padding: EdgeInsets.all(8),
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.surfaceBright,
+                    borderRadius: 8,
+                    borderColor: Theme.of(context).colorScheme.outline,
+                    child: Row(
+                      children: [
+                        Icon(Icons.folder_open_outlined),
+                        SizedBox(width: 8),
+                        Expanded(child: Text(Config.downloadDir!)),
+                        SizedBox(width: 8),
+                        ClickableContainer(
+                          backgroundColor: Theme.of(
+                            context,
+                          ).scaffoldBackgroundColor.withAlpha(128),
+                          padding: EdgeInsets.all(12),
+                          borderRadius: 8,
+                          borderColor: Theme.of(context).colorScheme.outline,
+                          onTap: _changeDownloadDir,
+                          child: Text("Change"),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Download grouping
+            ExtendedSettingsOption(
+              prefix: Checkbox(
+                value: true,
+                onChanged: (value) => _setDownloadOrganizing(value),
+              ),
+              body: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Title
+                  Text(
+                    "Organize downloads in subfolders",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      // color: effectiveTitleColor,
+                    ),
+                  ),
+
+                  SizedBox(height: 2),
+
+                  // Subtitle
+                  Text(
+                    "Downloads will be saved in subfolders based on file type",
+                    style: TextStyle(
+                      fontSize: 13,
+                      // color: effectiveSubtitleColor,
+                      height: 1.2,
+                    ),
+                  ),
+
+                  SizedBox(height: 8),
+
+                  _DownloadOrganizationRow(
+                    directoryName: "Videos",
+                    extensions: {"mp4", "mkv", "webm"},
+                  ),
+
+                  _DownloadOrganizationRow(
+                    directoryName: "Images",
+                    extensions: {"png", "jpg", "jpeg"},
+                  ),
+
+                  _DownloadOrganizationRow(
+                    directoryName: "Documents",
+                    extensions: {"txt", "pdf", "doc", "docx", "xlsx"},
+                  ),
+
+                  Container(
+                    margin: EdgeInsets.only(top: 16),
+                    child: ClickableContainer(
+                      padding: EdgeInsets.all(12),
+                      borderRadius: 8,
+                      onTap: () {CustomSnackBar.showMessage(context, "Add rule");},
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.add_circle_outline,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          SizedBox(width: 12),
+                          Text(
+                            "Add Rule",
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
                         ],
-                      )),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -664,6 +769,159 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 8),
         ],
         content,
+      ],
+    );
+  }
+
+  void _setDownloadOrganizing(bool? value) {}
+}
+
+class _DownloadOrganizationRow extends StatefulWidget {
+  final String directoryName;
+  final Set<String> extensions;
+
+  const _DownloadOrganizationRow({
+    super.key,
+    required this.directoryName,
+    required this.extensions,
+  });
+
+  @override
+  State<_DownloadOrganizationRow> createState() =>
+      _DownloadOrganizationRowState();
+}
+
+class _DownloadOrganizationRowState extends State<_DownloadOrganizationRow> {
+  double leadColWidth = 200;
+  double gap = 24;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(height: 16),
+        // Row(
+        //   children: [
+        //     SizedBox(
+        //       width: leadColWidth,
+        //       child: Text(
+        //         "Subdirectory Name",
+        //         style: TextStyle(fontSize: 13, height: 1.2),
+        //       ),
+        //     ),
+        //     SizedBox(width: gap),
+        //
+        //     Expanded(
+        //       child: Text(
+        //         "File Types",
+        //         style: TextStyle(fontSize: 13, height: 1.2),
+        //       ),
+        //     ),
+        //   ],
+        // ),
+        SizedBox(height: 8),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: leadColWidth,
+              child: ClickableContainer(
+                borderColor: Theme.of(context).colorScheme.outlineVariant,
+                borderRadius: 8,
+                backgroundColor: Theme.of(context).colorScheme.surfaceBright,
+                padding: EdgeInsets.all(8),
+                child: Text(widget.directoryName),
+              ),
+            ),
+
+            SizedBox(width: gap),
+
+            Expanded(
+              child: ClickableContainer(
+                borderColor: Theme.of(context).colorScheme.outlineVariant,
+                borderRadius: 8,
+                backgroundColor: Theme.of(context).colorScheme.surfaceBright,
+                // padding: EdgeInsets.all(5),
+                child: Wrap(
+                  children:
+                      widget.extensions
+                          .map(
+                            (extension) => Container(
+                              margin: EdgeInsets.all(5),
+                              child: ClickableContainer(
+                                borderColor: Theme.of(
+                                  context,
+                                ).colorScheme.outlineVariant,
+                                borderRadius: 8,
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.surfaceBright,
+                                padding: EdgeInsets.all(5),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        height: 0.8,
+                                      ),
+
+                                      extension,
+                                    ),
+                                    SizedBox(width: 4),
+                                    InkWell(
+                                      borderRadius: BorderRadius.circular(20),
+                                      onTap: () {
+                                        CustomSnackBar.showMessage(
+                                          context,
+                                          "Remove",
+                                        );
+                                      },
+                                      child: Icon(Icons.close, size: 12),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          )
+                          .toList() +
+                      [
+                        Container(
+                          margin: EdgeInsets.all(5),
+                          child: ClickableContainer(
+                            borderColor: Theme.of(context).colorScheme.primary,
+                            borderRadius: 8,
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.surfaceBright,
+                            padding: EdgeInsets.all(5),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(20),
+                              onTap: () {
+                                CustomSnackBar.showMessage(context, "Add");
+                              },
+                              child: Icon(
+                                Icons.add,
+                                color: Theme.of(context).colorScheme.primary,
+                                size: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                ),
+              ),
+            ),
+
+            TextButton(
+              onPressed: () {},
+              child: Icon(
+                Icons.delete_outline_rounded,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }

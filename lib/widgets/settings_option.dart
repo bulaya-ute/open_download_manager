@@ -184,6 +184,7 @@ class ExtendedSettingsOption extends StatelessWidget {
       padding:
           padding ?? const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Prefix icon
           if (prefix != null) ...[

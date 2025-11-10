@@ -81,16 +81,16 @@ class StackedContainerGroup extends StatelessWidget {
           decoration: BoxDecoration(
             color: effectiveBackgroundColor,
             borderRadius: BorderRadius.circular(borderRadius),
-            border: Border.all(color: effectiveBorderColor),
-            boxShadow:
-                boxShadow ??
-                [
-                  BoxShadow(
-                    color: theme.cardTheme.shadowColor ?? Colors.black,
-                    blurRadius: 8,
-                    offset: Offset(0, 2),
-                  ),
-                ],
+            border: Border.all(color: Theme.of(context).colorScheme.outline),
+            // boxShadow:
+            //     boxShadow ??
+            //     [
+            //       BoxShadow(
+            //         color: theme.cardTheme.shadowColor ?? Colors.black,
+            //         blurRadius: 8,
+            //         offset: Offset(0, 2),
+            //       ),
+            //     ],
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(borderRadius),
