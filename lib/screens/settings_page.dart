@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:open_download_manager/widgets/clickable_container.dart';
+import 'package:open_download_manager/widgets/option_selector.dart';
+import 'package:open_download_manager/widgets/padded_column.dart';
+import 'package:open_download_manager/widgets/settings_option.dart';
+import 'package:open_download_manager/widgets/stacked_container_group.dart';
 import '../models/app_settings.dart';
 import '../utils/theme/colors.dart';
 // import '../utils/data_service.dart';
@@ -12,7 +17,7 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  String _selectedSection = 'Downloads';
+  String _selectedSection = 'General';
   late AppSettings _settings;
   bool _isLoading = true;
 
@@ -39,7 +44,6 @@ class _SettingsPageState extends State<SettingsPage> {
       });
     }
   }
-
 
   Future<void> _saveSettings() async {
     try {
@@ -85,13 +89,11 @@ class _SettingsPageState extends State<SettingsPage> {
     }
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
       body: Row(
         children: [
           // Left sidebar
-          Container(
+          SizedBox(
             width: 250,
-            color: Theme.of(context).colorScheme.surface,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -131,6 +133,9 @@ class _SettingsPageState extends State<SettingsPage> {
               ],
             ),
           ),
+
+          VerticalDivider(),
+
           // Main content area
           Expanded(
             child: Column(
@@ -140,7 +145,11 @@ class _SettingsPageState extends State<SettingsPage> {
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     border: Border(
-                      bottom: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(100)),
+                      bottom: BorderSide(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.outline.withAlpha(100),
+                      ),
                     ),
                   ),
                   child: Row(
@@ -162,7 +171,9 @@ class _SettingsPageState extends State<SettingsPage> {
                             prefixIcon: const Icon(Icons.search, size: 20),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
+                              borderSide: BorderSide(
+                                color: Theme.of(context).colorScheme.outline,
+                              ),
                             ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 12,
@@ -185,7 +196,13 @@ class _SettingsPageState extends State<SettingsPage> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(100))),
+                    border: Border(
+                      top: BorderSide(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.outline.withAlpha(100),
+                      ),
+                    ),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -198,7 +215,9 @@ class _SettingsPageState extends State<SettingsPage> {
                       ElevatedButton(
                         onPressed: _saveSettings,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary,
                           foregroundColor: white,
                         ),
                         child: const Text('Save Changes'),
@@ -221,13 +240,17 @@ class _SettingsPageState extends State<SettingsPage> {
       child: ListTile(
         leading: Icon(
           icon,
-          color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurfaceVariant,
+          color: isSelected
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(context).colorScheme.onSurfaceVariant,
           size: 20,
         ),
         title: Text(
           title,
           style: TextStyle(
-            color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface,
+            color: isSelected
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.onSurface,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
@@ -245,10 +268,10 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildContent() {
     switch (_selectedSection) {
-      case 'Downloads':
-        return _buildDownloadsContent();
       case 'General':
         return _buildGeneralContent();
+      case 'Downloads':
+        return _buildDownloadsContent();
       case 'Privacy & Security':
         return _buildPrivacyContent();
       case 'Advanced':
@@ -261,193 +284,52 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildDownloadsContent() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return PaddedColumn(
+      spacing: 24,
       children: [
-        // Default Download Location
-        _buildSettingSection(
-          'Default Download Location',
-          '',
-          Row(
-            children: [
-              Icon(Icons.folder, color: Theme.of(context).colorScheme.onSurfaceVariant),
-              const SizedBox(width: 8),
-              Text(_settings.defaultDownloadLocation),
-              const Spacer(),
-              TextButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Folder picker coming soon')),
-                  );
-                },
-                child: const Text('Browse'),
-              ),
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    _settings = _settings.copyWith(
-                      defaultDownloadLocation: 'Downloads',
-                    );
-                  });
-                },
-                child: const Text('Reset to default'),
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 32),
-
-        // Maximum Simultaneous Downloads
-        _buildSettingSection(
-          'Maximum Simultaneous Downloads',
-          'Set the maximum number of downloads that can run at the same time',
-          Row(
-            children: [
-              SizedBox(
-                width: 100,
-                child: TextFormField(
-                  initialValue: _settings.maxSimultaneousDownloads.toString(),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
+        StackedContainerGroup(
+          title: "Download Behaviour",
+          children: [
+            ExtendedSettingsOption(
+              body: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Title
+                  Text(
+                    "Download Folder",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      // color: effectiveTitleColor,
                     ),
                   ),
-                  onChanged: (value) {
-                    final parsed = int.tryParse(value);
-                    if (parsed != null && parsed > 0) {
-                      setState(() {
-                        _settings = _settings.copyWith(
-                          maxSimultaneousDownloads: parsed,
-                        );
-                      });
-                    }
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
 
-        const SizedBox(height: 32),
+                  SizedBox(height: 2),
 
-        // Group by file type
-        _buildSettingSection(
-          '',
-          '',
-          CheckboxListTile(
-            title: const Text('Group incoming downloads by file type'),
-            value: _settings.groupByFileType,
-            onChanged: (value) {
-              setState(() {
-                _settings = _settings.copyWith(groupByFileType: value ?? false);
-              });
-            },
-            controlAffinity: ListTileControlAffinity.leading,
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-
-        if (_settings.groupByFileType) ...[
-          const SizedBox(height: 16),
-          _buildFileTypeGroupsTable(),
-          const SizedBox(height: 16),
-          TextButton.icon(
-            onPressed: () {
-              setState(() {
-                _fileTypeGroups.add({'types': '', 'folder': ''});
-              });
-            },
-            icon: const Icon(Icons.add),
-            label: const Text('Add File Type'),
-          ),
-        ],
-
-        const SizedBox(height: 32),
-
-        // Download speed limit
-        _buildSettingSection(
-          '',
-          '',
-          CheckboxListTile(
-            title: const Text('Download speed limit'),
-            value: _settings.downloadSpeedLimit,
-            onChanged: (value) {
-              setState(() {
-                _settings = _settings.copyWith(
-                  downloadSpeedLimit: value ?? false,
-                );
-              });
-            },
-            controlAffinity: ListTileControlAffinity.leading,
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-
-        if (_settings.downloadSpeedLimit) ...[
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Slider(
-                  value: _settings.speedLimitValue,
-                  min: 10,
-                  max: 1000,
-                  divisions: 99,
-                  onChanged: (value) {
-                    setState(() {
-                      _settings = _settings.copyWith(speedLimitValue: value);
-                    });
-                  },
-                ),
-              ),
-              const SizedBox(width: 16),
-              SizedBox(
-                width: 80,
-                child: TextFormField(
-                  initialValue: _settings.speedLimitValue.toInt().toString(),
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
+                  // Subtitle
+                  Text(
+                    "All downloads will be saved here",
+                    style: TextStyle(
+                      fontSize: 13,
+                      // color: effectiveSubtitleColor,
+                      height: 1.2,
                     ),
                   ),
-                  onChanged: (value) {
-                    final parsed = double.tryParse(value);
-                    if (parsed != null && parsed >= 10 && parsed <= 1000) {
-                      setState(() {
-                        _settings = _settings.copyWith(speedLimitValue: parsed);
-                      });
-                    }
-                  },
-                ),
+
+                  ClickableContainer(
+                      borderRadius: 8,
+                      borderColor: Theme.of(context).colorScheme.outline,
+                      child: Row(
+                        children: [
+
+                        ],
+                      )),
+                ],
               ),
-              const SizedBox(width: 8),
-              DropdownButton<String>(
-                value: _settings.speedLimitUnit,
-                items: ['KB/s', 'MB/s'].map((unit) {
-                  return DropdownMenuItem(value: unit, child: Text(unit));
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _settings = _settings.copyWith(speedLimitUnit: value!);
-                  });
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Limit the maximum download speed to prevent affecting other network activities',
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
-          ),
-        ],
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -495,7 +377,11 @@ class _SettingsPageState extends State<SettingsPage> {
             return Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(100))),
+                border: Border(
+                  top: BorderSide(
+                    color: Theme.of(context).colorScheme.outline.withAlpha(100),
+                  ),
+                ),
               ),
               child: Row(
                 children: [
@@ -554,69 +440,48 @@ class _SettingsPageState extends State<SettingsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSettingSection(
-          'Language',
-          'Choose your preferred language',
-          DropdownButtonFormField<String>(
-            value: _settings.language,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        StackedContainerGroup(
+          title: "Appearance",
+          children: [
+            SettingsOption(
+              title: "Language",
+              prefixIcon: Icons.language_outlined,
+              suffix: DropdownButton<String>(
+                value: "English",
+                items: ["English"].map((lang) {
+                  return DropdownMenuItem(value: lang, child: Text(lang));
+                }).toList(),
+                onChanged: (final val) {},
+              ),
             ),
-            items: ['English', 'Spanish', 'French', 'German'].map((lang) {
-              return DropdownMenuItem(value: lang, child: Text(lang));
-            }).toList(),
-            onChanged: (value) {
-              setState(() {
-                _settings = _settings.copyWith(language: value!);
-              });
-            },
-          ),
-        ),
-        const SizedBox(height: 24),
-        _buildSettingSection(
-          'Theme',
-          'Choose your preferred appearance',
-          DropdownButtonFormField<String>(
-            value: _settings.theme,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            SettingsOption(
+              title: "Theme",
+              prefixIcon: Icons.contrast,
+              suffix: OptionSelector(
+                value: "Light",
+                options: ["Light", "Dark", "System"],
+                onChanged: (onChanged) {},
+              ),
             ),
-            items: ['System', 'Light', 'Dark'].map((theme) {
-              return DropdownMenuItem(value: theme, child: Text(theme));
-            }).toList(),
-            onChanged: (value) {
-              setState(() {
-                _settings = _settings.copyWith(theme: value!);
-              });
-            },
-          ),
+          ],
         ),
-        const SizedBox(height: 24),
-        CheckboxListTile(
-          title: const Text('Start with system'),
-          subtitle: const Text('Launch download manager when system starts'),
-          value: _settings.startWithSystem,
-          onChanged: (value) {
-            setState(() {
-              _settings = _settings.copyWith(startWithSystem: value ?? false);
-            });
-          },
-          contentPadding: EdgeInsets.zero,
-        ),
-        CheckboxListTile(
-          title: const Text('Minimize to system tray'),
-          subtitle: const Text(
-            'Keep running in background when window is closed',
-          ),
-          value: _settings.minimizeToTray,
-          onChanged: (value) {
-            setState(() {
-              _settings = _settings.copyWith(minimizeToTray: value ?? false);
-            });
-          },
-          contentPadding: EdgeInsets.zero,
+
+        SizedBox(height: 24),
+
+        StackedContainerGroup(
+          title: "Behavior",
+          children: [
+            SettingsOption(
+              title: "Launch on system startup",
+              prefixIcon: Icons.rocket_launch,
+              suffix: Switch(value: true, onChanged: (value) {}),
+            ),
+            SettingsOption(
+              title: "Check for updates automatically",
+              prefixIcon: Icons.update,
+              suffix: Switch(value: true, onChanged: (value) {}),
+            ),
+          ],
         ),
       ],
     );
@@ -725,7 +590,11 @@ class _SettingsPageState extends State<SettingsPage> {
       children: [
         Row(
           children: [
-            Icon(Icons.download, size: 48, color: Theme.of(context).colorScheme.primary),
+            Icon(
+              Icons.download,
+              size: 48,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             const SizedBox(width: 16),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -748,7 +617,9 @@ class _SettingsPageState extends State<SettingsPage> {
         const SizedBox(height: 24),
         Text(
           'Copyright © 2024 Open Download Manager Team',
-          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 24),
         Row(
@@ -785,7 +656,10 @@ class _SettingsPageState extends State<SettingsPage> {
         if (description.isNotEmpty) ...[
           Text(
             description,
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 14,
+            ),
           ),
           const SizedBox(height: 8),
         ],

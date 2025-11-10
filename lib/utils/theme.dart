@@ -3,28 +3,26 @@ import 'package:flutter/material.dart';
 
 
 final darkTheme = ThemeData.dark().copyWith(
-  scaffoldBackgroundColor: const Color(0xFF101922), // Dark slate blue
+  scaffoldBackgroundColor: const Color(0xFF101921), // Dark slate blue
+  cardColor: const Color(0xFF0f172a),
   colorScheme: const ColorScheme.dark(
     primary: Color(0xFF4A9EFF),
-    // Bright blue for buttons/actions
     secondary: Color(0xFF34D399),
-    // Green for success states
-    surface: Color(0xFF252D3F),
-    // Slightly lighter slate for cards
+    surface: Color(0xFF162033),
     onSurface: Color(0xFFE8EAED),
-    // Light text
     onSurfaceVariant: Color(0xFF9AA0B0),
-    // Muted gray for secondary text
-    outline: Color(0xFF2F3544),
-    // Subtle borders
+    outline: Color(0xFF1e293b),
     error: Color(0xFFF87171), // Red for errors
   ),
+
   cardTheme: const CardThemeData(
-    color: Color(0xFF252D3F),
+    color: Color(0xFF161f32),
     elevation: 0,
     margin: EdgeInsets.zero,
   ),
+
   inputDecorationTheme: InputDecorationTheme(
+    contentPadding: EdgeInsets.all(8),
     filled: false,
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(8),
@@ -38,6 +36,10 @@ final darkTheme = ThemeData.dark().copyWith(
       borderRadius: BorderRadius.circular(8),
       borderSide: const BorderSide(color: Color(0xFF4A9EFF), width: 2),
     ),
+  ),
+
+  dividerTheme: DividerThemeData(
+    color: Color(0xFF1e293b),
   ),
 );
 

@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 
-class WindowManager {
+class MultiWindowManager {
+  static int? manualAddDownloadWindowId;
+  
   static final String _moduleName = "WINDOW MGR";
   static final List<WindowInfo> _windows = [];
 
@@ -23,11 +25,24 @@ class WindowManager {
     }
   }
 
-  static Future<int?> createWindow(String name) async {
+  static int? get addDownloadWindowId {
+    for (final windowDetails in _windows) {
+      if (windowDetails.name == "Add Download") return windowDetails.id;
+    }
+    return null;
+  }
+
+  static Future<int?> createWindow(String windowName) async {
+    if (addDownloadWindowId != null) {
+      focusWindow(addDownloadWindowId!);
+      return null;
+    }
+    
     try {
+      
       // Set window details
       // final name = 'Window $_windowCounter';
-      final windowConfig = {'name': name};
+      final windowConfig = {'name': windowName};
 
       // Create the new window
       final windowController = await DesktopMultiWindow.createWindow(
@@ -36,15 +51,15 @@ class WindowManager {
 
       // Configure the window using the controller
       windowController
-        ..setFrame(const Offset(100, 100) & const Size(800, 600))
-        ..setTitle(name)
+        ..setFrame(const Offset(100, 100) & const Size(700, 330))
+        ..setTitle(windowName)
         ..show();
 
       // Add to our tracking list
       _windows.add(
         WindowInfo(
           id: windowController.windowId,
-          name: name,
+          name: windowName,
           controller: windowController,
         ),
       );
@@ -64,6 +79,20 @@ class WindowManager {
 
       // Use the controller's close method
       await windowInfo.controller.close();
+
+      _windows.removeWhere((w) => w.id == windowId);
+    } catch (e) {
+      print('Failed to close window: $e');
+    }
+  }
+
+  static Future<void> focusWindow(int windowId) async {
+    try {
+      // Find the window controller for this window ID
+      final windowInfo = _windows.firstWhere((w) => w.id == windowId);
+
+      // Use the controller's close method
+      await windowInfo.controller.show();
 
       _windows.removeWhere((w) => w.id == windowId);
     } catch (e) {

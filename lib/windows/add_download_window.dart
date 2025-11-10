@@ -3,27 +3,34 @@ import 'dart:convert';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:open_download_manager/utils/theme.dart';
+import 'package:path/path.dart';
 
 enum FilenameStatus { loading, success, error, none }
 
 class AddDownloadWindowApp extends StatelessWidget {
   final int windowId;
   final String windowName;
+  final String? url;
 
   const AddDownloadWindowApp({
     super.key,
     required this.windowId,
     required this.windowName,
+    this.url,
   });
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: windowName,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+      theme: lightTheme,
+      darkTheme: darkTheme,
+      home: AddDownloadWindow(
+        windowId: windowId,
+        windowName: windowName,
+        url: url,
       ),
-      home: AddDownloadWindow(windowId: windowId, windowName: windowName),
       debugShowCheckedModeBanner: false,
     );
   }
@@ -32,11 +39,13 @@ class AddDownloadWindowApp extends StatelessWidget {
 class AddDownloadWindow extends StatefulWidget {
   final int windowId;
   final String windowName;
+  final String? url;
 
   const AddDownloadWindow({
     super.key,
     required this.windowId,
     required this.windowName,
+    this.url,
   });
 
   @override
@@ -54,6 +63,7 @@ class _AddDownloadWindowState extends State<AddDownloadWindow> {
     super.initState();
 
     _urlController.addListener(_onUrlChanged);
+    if (widget.url != null) _urlController.text = widget.url!;
 
     // Listen for messages from the main window
     DesktopMultiWindow.setMethodHandler(_handleMethodCall);
@@ -212,93 +222,158 @@ class _AddDownloadWindowState extends State<AddDownloadWindow> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.windowName),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      ),
       body: Container(
-        width: 500,
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(16),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          // mainAxisSize: MainAxisSize.max,
+          // crossAxisAlignment: CrossAxisAlignment.start,
+          // crossA
           children: [
             // Title
             Row(
               children: [
-                const Icon(Icons.add_circle_outline, color: Colors.blue),
-                const SizedBox(width: 8),
+                // const Icon(Icons.add_circle_outline, color: Colors.blue),
+                // const SizedBox(width: 8),
                 const Text(
                   'Add New Download',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
                 ),
                 const Spacer(),
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close),
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.grey[100],
-                  ),
-                ),
               ],
             ),
             const SizedBox(height: 24),
 
             // URL input field
-            const Text(
-              'Download URL',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _urlController,
-              decoration: InputDecoration(
-                hintText: 'https://example.com/file.zip',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+            Row(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                SizedBox(
+                  width: 150,
+                  child: Text(
+                    'Download URL',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
                 ),
-                prefixIcon: const Icon(Icons.link),
-                suffixIcon: _urlController.text.isNotEmpty
-                    ? IconButton(
-                        onPressed: () {
-                          _urlController.clear();
-                        },
-                        icon: const Icon(Icons.clear),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: TextField(
+                    controller: _urlController,
+                    decoration: InputDecoration(
+                      hintText: 'https://example.com/file.zip',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      prefixIcon: const Icon(Icons.link),
+                      suffixIcon: _urlController.text.isNotEmpty
+                          ? IconButton(
+                              onPressed: () {
+                                _urlController.clear();
+                              },
+                              icon: const Icon(Icons.clear),
+                            )
+                          : null,
+                    ),
+                    keyboardType: TextInputType.url,
+                    textInputAction: TextInputAction.next,
+                  ),
+                ),
+                //
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Save directory input field
+            Row(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                SizedBox(
+                  width: 150,
+                  child: Text(
+                    'Save To',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: TextField(
+                    controller: _urlController,
+                    decoration: InputDecoration(
+                      hintText: 'https://example.com/file.zip',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      prefixIcon: const Icon(Icons.link),
+                      suffixIcon: _urlController.text.isNotEmpty
+                          ? IconButton(
+                              onPressed: () {
+                                _urlController.clear();
+                              },
+                              icon: const Icon(Icons.clear),
+                            )
+                          : null,
+                    ),
+                    keyboardType: TextInputType.url,
+                    textInputAction: TextInputAction.next,
+                  ),
+                ),
+                // OutlinedButton(onPressed: () {}, child: Text("Browse")),
+                GestureDetector(
+                  onTap: () {},
+                  child: Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outline
                       )
-                    : null,
-              ),
-              keyboardType: TextInputType.url,
-              textInputAction: TextInputAction.next,
+                    ),
+                      child: Text("Browse")
+                  ),
+                )
+                //
+              ],
             ),
             const SizedBox(height: 16),
 
             // Filename input field
-            const Text(
-              'Filename',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _filenameController,
-              decoration: InputDecoration(
-                hintText: 'Enter filename',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+            Row(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                SizedBox(
+                  width: 150,
+                  child: const Text(
+                    'Filename',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
                 ),
-                prefixIcon: const Icon(Icons.insert_drive_file),
-                suffixIcon: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: _buildFilenameStatusIcon(),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: TextField(
+                    controller: _filenameController,
+                    decoration: InputDecoration(
+                      hintText: 'Enter filename',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      prefixIcon: const Icon(Icons.insert_drive_file),
+                      suffixIcon: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: _buildFilenameStatusIcon(),
+                      ),
+                    ),
+                    onTap: () {
+                      // Select all text when tapped
+                      _filenameController.selection = TextSelection(
+                        baseOffset: 0,
+                        extentOffset: _filenameController.text.length,
+                      );
+                    },
+                  ),
                 ),
-              ),
-              onTap: () {
-                // Select all text when tapped
-                _filenameController.selection = TextSelection(
-                  baseOffset: 0,
-                  extentOffset: _filenameController.text.length,
-                );
-              },
+                //
+              ],
             ),
+
             const SizedBox(height: 24),
 
             // Action buttons
@@ -316,10 +391,10 @@ class _AddDownloadWindowState extends State<AddDownloadWindow> {
                       ? null
                       : () async {
                           _sendMessageToMain(
-                    //         "123"
                             jsonEncode({
                               "url": _urlController.text.trim(),
                               "filename": _filenameController.text.trim(),
+                              "downloadNow": false,
                             }),
                           );
                         },
@@ -333,6 +408,32 @@ class _AddDownloadWindowState extends State<AddDownloadWindow> {
                   ),
                   child: const Text('Add Download'),
                 ),
+                const SizedBox(width: 12),
+
+                ElevatedButton(
+                  onPressed:
+                      !_isValidUrl || _filenameController.text.trim().isEmpty
+                      ? null
+                      : () async {
+                          _sendMessageToMain(
+                            //         "123"
+                            jsonEncode({
+                              "url": _urlController.text.trim(),
+                              "filename": _filenameController.text.trim(),
+                              "downloadNow": true,
+                            }),
+                          );
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                  ),
+                  child: const Text('Download Now'),
+                ),
               ],
             ),
           ],
@@ -345,9 +446,9 @@ class _AddDownloadWindowState extends State<AddDownloadWindow> {
     if (call.method == 'message_from_main') {
       final message = call.arguments.toString();
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      // ScaffoldMessenger.of(
+      //   context,
+      // ).showSnackBar(SnackBar(content: Text(message)));
       return 'Message received by secondary window ${widget.windowId}';
     }
     return null;
@@ -361,11 +462,11 @@ class _AddDownloadWindowState extends State<AddDownloadWindow> {
         message,
       );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to send message: $e')));
-      }
+      // if (mounted) {
+      //   ScaffoldMessenger.of(
+      //     context,
+      //   ).showSnackBar(SnackBar(content: Text('Failed to send message: $e')));
+      // }
     }
   }
 }

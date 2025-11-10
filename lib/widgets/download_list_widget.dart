@@ -57,12 +57,17 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
         // Check if we have enough space or need horizontal scrolling
         final availableWidth = constraints.maxWidth;
         final needsScrolling = availableWidth < minTotalWidth;
-        
+
         // Calculate filename column width
         final filenameWidth = needsScrolling
             ? minFilenameWidth
-            : availableWidth - 
-              (checkboxWidth + statusWidth + sizeWidth + urlWidth + speedWidth + dateWidth);
+            : availableWidth -
+                  (checkboxWidth +
+                      statusWidth +
+                      sizeWidth +
+                      urlWidth +
+                      speedWidth +
+                      dateWidth);
 
         final content = Column(
           children: [
@@ -70,7 +75,11 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
             Container(
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
-                border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.outline)),
+                border: Border(
+                  bottom: BorderSide(
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+                ),
               ),
               child: Row(
                 children: [
@@ -91,12 +100,32 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
                     ),
                   ),
                   // Column headers
-                  _buildColumnHeader('Filename', width: filenameWidth, isFlexible: !needsScrolling),
-                  _buildColumnHeader('Status', width: statusWidth, isFlexible: false),
-                  _buildColumnHeader('Size', width: sizeWidth, isFlexible: false),
+                  _buildColumnHeader(
+                    'Filename',
+                    width: filenameWidth,
+                    isFlexible: !needsScrolling,
+                  ),
+                  _buildColumnHeader(
+                    'Status',
+                    width: statusWidth,
+                    isFlexible: false,
+                  ),
+                  _buildColumnHeader(
+                    'Size',
+                    width: sizeWidth,
+                    isFlexible: false,
+                  ),
                   _buildColumnHeader('URL', width: urlWidth, isFlexible: false),
-                  _buildColumnHeader('Speed', width: speedWidth, isFlexible: false),
-                  _buildColumnHeader('Date Added', width: dateWidth, isFlexible: false),
+                  _buildColumnHeader(
+                    'Speed',
+                    width: speedWidth,
+                    isFlexible: false,
+                  ),
+                  _buildColumnHeader(
+                    'Date Added',
+                    width: dateWidth,
+                    isFlexible: false,
+                  ),
                 ],
               ),
             ),
@@ -106,11 +135,17 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
                 itemCount: widget.downloads.length,
                 itemBuilder: (context, index) {
                   final download = widget.downloads[index];
-                  return buildDownloadRow(
-                    download,
-                    widget.onRefreshDownloadList,
-                    filenameWidth,
-                    !needsScrolling,
+                  return DownloadRow(
+                    download: download,
+                    onRefreshDownloadList: widget.onRefreshDownloadList,
+                    filenameWidth: filenameWidth,
+                    isFilenameFlexible: !needsScrolling,
+                    statusWidth: statusWidth,
+                    checkboxWidth: checkboxWidth,
+                    sizeWidth: sizeWidth,
+                    urlWidth: urlWidth,
+                    speedWidth: speedWidth,
+                    dateWidth: dateWidth,
                   );
                 },
               ),
@@ -122,10 +157,7 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
         if (needsScrolling) {
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: SizedBox(
-              width: minTotalWidth,
-              child: content,
-            ),
+            child: SizedBox(width: minTotalWidth, child: content),
           );
         } else {
           return content;
@@ -134,149 +166,11 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
     );
   }
 
-  Widget buildDownloadRow(
-    DownloadItem download,
-    final Function() onRefreshDownloadList,
-    double filenameWidth,
-    bool isFilenameFlexible,
-  ) {
-    return GestureDetector(
-      onSecondaryTapDown: (details) {
-        _showContextMenu(details.globalPosition, download);
-      },
-      onDoubleTap: () {
-        _showDownloadDetails(download);
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: Theme.of(context).colorScheme.outline.withAlpha(100))),
-        ),
-        child: Row(
-            children: [
-              // Checkbox
-              SizedBox(
-                width: checkboxWidth,
-                child: Checkbox(
-                  value: download.isSelected,
-                  onChanged: (value) {
-                    // widget.onToggleSelection(download);
-                    download.isSelected = value!;
-                    onRefreshDownloadList();
-                  },
-                ),
-              ),
-
-              // Filename (flexible or fixed width)
-              isFilenameFlexible
-                  ? Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 12,
-                        ),
-                        child: Text(
-                          download.filename,
-                          style: const TextStyle(fontSize: 14),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    )
-                  : SizedBox(
-                      width: filenameWidth,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 12,
-                        ),
-                        child: Text(
-                          download.filename,
-                          style: const TextStyle(fontSize: 14),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-
-              // Status
-              SizedBox(
-                width: statusWidth,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 12,
-                  ),
-                  child: _buildStatusColumn(download),
-                ),
-              ),
-
-              // Size
-              SizedBox(
-                width: sizeWidth,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 12,
-                  ),
-                  child: Text(
-                    download.partialFileObject!.getFormattedFileSize(),
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                ),
-              ),
-
-              // URL
-              SizedBox(
-                width: urlWidth,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 12,
-                  ),
-                  child: Text(
-                    download.url,
-                    style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.primary),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
-
-              // Speed
-              SizedBox(
-                width: speedWidth,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 12,
-                  ),
-                  child: Text(
-                    download.status != DownloadStatus.downloading
-                        ? " "
-                        : download.partialFileObject!.getFormattedDownloadSpeed(),
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                ),
-              ),
-
-              // Date Added
-              SizedBox(
-                width: dateWidth,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 12,
-                  ),
-                  child: Text(
-                    "${download.dateAdded}",
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-    );
-  }
-
-  Widget _buildColumnHeader(String title, {required double width, required bool isFlexible}) {
+  Widget _buildColumnHeader(
+    String title, {
+    required double width,
+    required bool isFlexible,
+  }) {
     final headerContent = InkWell(
       onTap: () {
         setState(() {
@@ -294,17 +188,12 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
           children: [
             Text(
               title,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
             ),
             const SizedBox(width: 4),
             Icon(
               _sortColumn == title.toLowerCase()
-                  ? (_sortAscending
-                        ? Icons.arrow_upward
-                        : Icons.arrow_downward)
+                  ? (_sortAscending ? Icons.arrow_upward : Icons.arrow_downward)
                   : Icons.unfold_more,
               size: 16,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -320,42 +209,37 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
       return SizedBox(width: width, child: headerContent);
     }
   }
+}
 
-  Color getStatusColor(DownloadStatus status) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    switch (status) {
-      case DownloadStatus.completed:
-        return isDark ? completedGreen : completedGreenLight;
-      case DownloadStatus.downloading:
-        return isDark ? downloadingBlue : downloadingBlueLite;
-      case DownloadStatus.error:
-        return isDark ? downloadErrorRed : downloadErrorRedLight;
-      case DownloadStatus.paused:
-        return isDark ? pausedAmber : pausedAmberLight;
-      case DownloadStatus.stopped:
-        return isDark ? pausedAmber : pausedAmberLight;
-    }
-  }
+class DownloadRow extends StatelessWidget {
+  final DownloadItem download;
+  final Function() onRefreshDownloadList;
+  final double filenameWidth;
+  final bool isFilenameFlexible;
+  final double statusWidth;
+  final double checkboxWidth;
+  final double sizeWidth;
+  final double urlWidth;
+  final double speedWidth;
+  final double dateWidth;
 
-  Widget getStatusIcon(DownloadStatus status) {
-    final Color color = getStatusColor(status);
-    switch (status) {
-      case DownloadStatus.completed:
-        return Icon(Icons.check_circle, color: color, size: 20);
-      case DownloadStatus.downloading:
-        return Icon(Icons.download, color: color, size: 20);
-      case DownloadStatus.error:
-        return Icon(Icons.error, color: color, size: 20);
-      case DownloadStatus.paused:
-        return Icon(Icons.pause_circle, color: color, size: 20);
-      case DownloadStatus.stopped:
-        return Icon(Icons.pause_circle, color: color, size: 20);
-    }
-  }
+  const DownloadRow({
+    super.key,
+    required this.download,
+    required this.onRefreshDownloadList,
+    required this.filenameWidth,
+    required this.isFilenameFlexible,
+    required this.statusWidth,
+    required this.checkboxWidth,
+    required this.sizeWidth,
+    required this.urlWidth,
+    required this.speedWidth,
+    required this.dateWidth,
+  });
 
-  Widget _buildStatusColumn(DownloadItem download) {
+  Widget _buildStatusColumn(DownloadItem download, BuildContext context) {
     String statusText = '';
-    Widget statusIcon = getStatusIcon(download.status);
+    Widget statusIcon = download.getStatusIcon(context);
     double progressValue = (download.progress == null)
         ? 0.0
         : download.progress!;
@@ -404,7 +288,9 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
             Expanded(
               child: LinearProgressIndicator(
                 value: progressValue,
-                color: getStatusColor(download.status),
+                color: download.getStatusColor(context),
+                backgroundColor: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(20),
               ),
             ),
           ],
@@ -413,7 +299,32 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
     );
   }
 
-  void _showContextMenu(Offset position, DownloadItem download) {
+  void _handleContextMenuAction(
+    String action,
+    DownloadItem download,
+    BuildContext context,
+  ) {
+    switch (action) {
+      case 'refresh_link':
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Refreshing download link for ${download.filename}'),
+          ),
+        );
+        // TODO: Implement refresh link functionality
+        break;
+      default:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$action action for ${download.filename}')),
+        );
+    }
+  }
+
+  void _showContextMenu(
+    BuildContext context,
+    Offset position,
+    DownloadItem download,
+  ) {
     final RenderBox overlay =
         Overlay.of(context).context.findRenderObject() as RenderBox;
 
@@ -582,32 +493,160 @@ class _DownloadListWidgetState extends State<DownloadListWidget> {
       ],
     ).then((value) {
       if (value != null) {
-        _handleContextMenuAction(value, download);
+        _handleContextMenuAction(value, download, context);
       }
     });
   }
 
-  void _handleContextMenuAction(String action, DownloadItem download) {
-    switch (action) {
-      case 'refresh_link':
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Refreshing download link for ${download.filename}'),
+  @override
+  Widget build(BuildContext context) {
+    {
+      return GestureDetector(
+        onSecondaryTapDown: (details) {
+          _showContextMenu(context, details.globalPosition, download);
+        },
+        onDoubleTap: () {
+          showDialog(
+            context: context,
+            builder: (context) => DownloadDetailsDialog(download: download),
+          );
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            border: Border(
+              bottom: BorderSide(
+                color: Theme.of(context).colorScheme.outline,
+              ),
+            ),
           ),
-        );
-        // TODO: Implement refresh link functionality
-        break;
-      default:
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$action action for ${download.filename}')),
-        );
-    }
-  }
+          child: Row(
+            children: [
+              // Checkbox
+              SizedBox(
+                width: checkboxWidth,
+                child: Checkbox(
+                  value: download.isSelected,
+                  onChanged: (value) {
+                    // widget.onToggleSelection(download);
+                    download.isSelected = value!;
+                    onRefreshDownloadList();
+                  },
+                ),
+              ),
 
-  void _showDownloadDetails(DownloadItem download) {
-    showDialog(
-      context: context,
-      builder: (context) => DownloadDetailsDialog(download: download),
-    );
+              // Filename (flexible or fixed width)
+              isFilenameFlexible
+                  ? Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 12,
+                        ),
+                        child: Text(
+                          download.filename,
+                          style: const TextStyle(fontSize: 14),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    )
+                  : SizedBox(
+                      width: filenameWidth,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
+                        child: Text(
+                          download.filename,
+                          style: const TextStyle(fontSize: 14),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+
+              // Status
+              SizedBox(
+                width: statusWidth,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    // vertical: 8,
+                  ),
+                  child: _buildStatusColumn(download, context),
+                ),
+              ),
+
+              // Size
+              SizedBox(
+                width: sizeWidth,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    // vertical: 12,
+                  ),
+                  child: Text(
+                    download.partialFileObject!.getFormattedFileSize(),
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+              ),
+
+              // URL
+              SizedBox(
+                width: urlWidth,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    // vertical: 12,
+                  ),
+                  child: Text(
+                    download.url,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+
+              // Speed
+              SizedBox(
+                width: speedWidth,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    // vertical: 12,
+                  ),
+                  child: Text(
+                    download.status != DownloadStatus.downloading
+                        ? " "
+                        : download.partialFileObject!
+                              .getFormattedDownloadSpeed(),
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+              ),
+
+              // Date Added
+              SizedBox(
+                width: dateWidth,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 8,
+                  ),
+                  child: Text(
+                    "${download.dateAdded}",
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
   }
 }

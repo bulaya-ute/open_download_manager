@@ -10,8 +10,9 @@ import 'package:open_download_manager/utils/database_helper.dart';
 import 'package:open_download_manager/core/download_engine.dart';
 import 'package:open_download_manager/utils/download_service.dart';
 import 'package:open_download_manager/utils/theme/colors.dart';
+import 'package:open_download_manager/widgets/custom_snackbar.dart';
 import 'package:open_download_manager/widgets/download_list_widget.dart';
-import '../core/window_manager.dart';
+import '../core/multi_window_manager.dart';
 import '../models/download_item.dart';
 import '../models/download_status.dart';
 import '../models/partial_download_file.dart';
@@ -49,6 +50,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
         windowId: fromWindowId,
         url: message["url"],
         filename: message["filename"],
+        downloadNow: message["downloadNow"],
       );
       setState(() {
 
@@ -194,7 +196,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
                           //   ),
                           // );
 
-                          WindowManager.createWindow("Add Download");
+                          MultiWindowManager.createWindow("Add Download");
                         },
                       ),
                       const SizedBox(width: 8),
@@ -268,7 +270,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _buildTab('all', 'All Downloads', _getTabCount('all')),
+                      _buildTab('all', 'All', _getTabCount('all')),
                       _buildTab(
                         'completed',
                         'Completed',
@@ -707,6 +709,7 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
     required int windowId,
     required String url,
     required String filename,
+    required bool downloadNow,
   }) async {
     // Show loading indicator
     showDialog(
@@ -714,6 +717,9 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
       barrierDismissible: false,
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
+
+    String message = "";
+    bool errorRaised = false;
 
     try {
       url = url.trim();
@@ -733,36 +739,37 @@ class _DownloadManagerHomePageState extends State<DownloadManagerHomePage> {
 
       // Reload downloads list
       await DownloadService.loadDownloads();
+      await refreshDownloadList();
       setState(() {});
 
       // Close loading dialog
-      if (mounted) Navigator.of(context).pop();
+      Navigator.of(context).pop();
 
       // Close the add download dialog
-      WindowManager.closeWindow(windowId);
+      MultiWindowManager.closeWindow(windowId);
 
       // Show success message
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Download added: $filename'),
-            backgroundColor: Colors.green,
-          ),
-        );
+      if (downloadNow) {
+        message = 'Download added: $filename';
+      } else {
+        message = "Download started: $filename";
       }
+
     } catch (e) {
+      errorRaised = true;
       // Close loading dialog
       if (mounted) Navigator.of(context).pop();
 
+      message = 'Failed to create download: $e';
+
+    } finally {
       // Show error message
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to create download: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        CustomSnackBar.showMessage(context, message, isError: errorRaised);
       }
+
     }
+
+
   }
 }

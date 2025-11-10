@@ -1,5 +1,6 @@
 import 'package:open_download_manager/models/partial_download_file.dart';
-
+import 'package:flutter/material.dart';
+import '../utils/theme/colors.dart';
 import 'download_status.dart';
 
 class DownloadItem {
@@ -91,5 +92,37 @@ class DownloadItem {
 
   String get speed {
     return "${partialFileObject?.downloadSpeed}";
+  }
+
+  Color getStatusColor(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    switch (status) {
+      case DownloadStatus.completed:
+        return isDark ? completedGreen : completedGreenLight;
+      case DownloadStatus.downloading:
+        return isDark ? downloadingBlue : downloadingBlueLite;
+      case DownloadStatus.error:
+        return isDark ? downloadErrorRed : downloadErrorRedLight;
+      case DownloadStatus.paused:
+        return isDark ? pausedAmber : pausedAmberLight;
+      case DownloadStatus.stopped:
+        return isDark ? pausedAmber : pausedAmberLight;
+    }
+  }
+
+  Widget getStatusIcon(BuildContext context) {
+    final Color color = getStatusColor(context);
+    switch (status) {
+      case DownloadStatus.completed:
+        return Icon(Icons.check_circle, color: color, size: 20);
+      case DownloadStatus.downloading:
+        return Icon(Icons.download, color: color, size: 20);
+      case DownloadStatus.error:
+        return Icon(Icons.error, color: color, size: 20);
+      case DownloadStatus.paused:
+        return Icon(Icons.pause_circle, color: color, size: 20);
+      case DownloadStatus.stopped:
+        return Icon(Icons.pause_circle, color: color, size: 20);
+    }
   }
 }

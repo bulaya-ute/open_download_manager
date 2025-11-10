@@ -4,8 +4,11 @@ import 'package:open_download_manager/utils/theme.dart';
 import 'dart:convert';
 import 'package:open_download_manager/windows/add_download_window.dart';
 
-void main(List<String> args) {
+void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+
+
 
   // Check if this is the main window or a secondary window
   if (args.firstOrNull == 'multi_window') {

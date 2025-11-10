@@ -45,13 +45,13 @@ const Color warningYellow = Color(0xFFFFCC00); // iOS-like yellow
 // --- Download Status Colors (Dark Theme) ---
 
 /// Blue for active/downloading state - matches the progress bar in the dark theme
-const Color downloadingBlue = Color(0xFF4A9EFF);
+const Color downloadingBlue = Colors.blue;
 
 /// Green for completed downloads - matches the completed state
-const Color completedGreen = Color(0xFF34D399);
+const Color completedGreen = Colors.green;
 
 /// Amber/Yellow for paused downloads
-const Color pausedAmber = Color(0xFFFBBF24);
+const Color pausedAmber = Colors.amber;
 
 /// Red for failed/error downloads
 const Color downloadErrorRed = Color(0xFFF87171);
@@ -62,13 +62,13 @@ const Color progressTrackGray = Color(0xFF2F3544);
 // --- Download Status Colors (Light Theme Equivalents) ---
 
 /// Blue for active/downloading state - light theme version
-const Color downloadingBlueLite = Color(0xFF2563EB);
+const Color downloadingBlueLite = Colors.blue;
 
 /// Green for completed downloads - light theme version
-const Color completedGreenLight = Color(0xFF10B981);
+const Color completedGreenLight = Colors.green;
 
 /// Amber for paused downloads - light theme version
-const Color pausedAmberLight = Color(0xFFF59E0B);
+const Color pausedAmberLight = Colors.amber;
 
 /// Red for failed/error downloads - light theme version
 const Color downloadErrorRedLight = Color(0xFFEF4444);
