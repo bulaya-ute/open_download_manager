@@ -411,7 +411,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     child: ClickableContainer(
                       padding: EdgeInsets.all(12),
                       borderRadius: 8,
-                      onTap: () {CustomSnackBar.showMessage(context, "Add rule");},
+                      onTap: () {
+                        CustomSnackBar.showMessage(context, "Add rule");
+                      },
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -432,6 +434,14 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 ],
               ),
+            ),
+
+            // Pre-download confirmation option
+            SettingsOption(
+              title: "Start downloading before confirmation",
+              subtitle:
+                  "Starts downloading in the background the moment the confirmation dialog appears",
+              suffix: Switch(value: true, onChanged: (value) {}),
             ),
           ],
         ),
